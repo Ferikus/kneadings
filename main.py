@@ -3,6 +3,8 @@ from numba import cuda, njit
 
 DIM = 3
 THREADS_PER_BLOCK = 512
+
+
 INFINITY = 100000
 
 InfinityError = -0.2
@@ -42,7 +44,7 @@ def rhs(params, y, dydt):
     a, b = params
     dydt[0] = y[1]
     dydt[1] = y[2]
-    dydt[2] = -b * y[2] - y[1] + a * y[0] - a * y[0] ** 3
+    dydt[2] = -b * y[2] - y[1] + a * y[0] - a * (y[0] ** 3)
 
 
 @cuda.jit
@@ -58,12 +60,12 @@ def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end
 
     rhs(params, y_curr, first_derivative_prev)
 
-    for i in range(n):
+    for i in range(1, n):
+        # почему с 1?
 
-        j = 0
-        while j < stride:
+        for j in range(stride):
             stepper_rk4(params, y_curr, dt)
-            j += 1
+
         for k in range(DIM):
             if y_curr[k] > INFINITY or y_curr[k] < -INFINITY:
                 return InfinityError
@@ -85,7 +87,6 @@ def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end
 
     if kneading_index > kneadings_end:
         return kneadings_weighted_sum
-    # return kneading_index
 
     return KneadingDoNotEndError
 
@@ -111,13 +112,13 @@ def sweep_threads(
     a_step = (a_end - a_start) / (a_count - 1)
     b_step = (b_end - b_start) / (b_count - 1)
 
-    params = cuda.local.array(2, dtype=np.float32)
-    y_init = cuda.local.array(DIM, dtype=np.float32)
-
     if idx < a_count * b_count:
 
         i = idx // a_count
         j = idx % a_count
+
+        params = cuda.local.array(2, dtype=np.float32)
+        y_init = cuda.local.array(DIM, dtype=np.float32)
 
         params[0] = a_start + i * a_step
         params[1] = b_start + j * b_step
@@ -187,6 +188,8 @@ def sweep(
 
     kneadings_weighted_sum_set_gpu.copy_to_host(kneadings_weighted_sum_set)
 
+    return kneadings_weighted_sum_set
+
 
 if __name__ == "__main__":
     dt = 0.01
@@ -196,21 +199,38 @@ if __name__ == "__main__":
     sweep_size = 5
     kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size)
 
+    a_start = 0.0
+    a_end = 2.2
+    b_start = 0.0
+    b_end = 1.5
+
     sweep(
         kneadings_weighted_sum_set,
-        0.0,
-        2.2,
+        a_start,
+        a_end,
         sweep_size,
-        0,
-        1.5,
+        b_start,
+        b_end,
         sweep_size,
         dt,
         n,
         stride,
         0,
-        10,
+        max_kneadings
     )
 
-    for i in range(sweep_size):
-        for j in range(sweep_size):
-            print(kneadings_weighted_sum_set[i * sweep_size + j])
+    print("Results:")
+    for idx in range(sweep_size * sweep_size):
+        i = idx // sweep_size
+        j = idx % sweep_size
+
+        result_value = kneadings_weighted_sum_set[idx]
+
+        if result_value == InfinityError or result_value == KneadingDoNotEndError:
+            binary_result_str = 'Error'
+        else:
+            binary_result_str = format(int(result_value), 'b')
+
+        print(f"a: {a_start + i * (a_end - a_start) / (sweep_size - 1):.2f}, "
+              f"b: {b_start + j * (b_end - b_start) / (sweep_size - 1):.2f} => "
+              f"{binary_result_str} (Raw: {result_value})")
