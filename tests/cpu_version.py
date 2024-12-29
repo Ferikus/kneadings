@@ -8,25 +8,49 @@ KneadingDoNotEndError = -0.1
 
 
 # Шаг РК-4, сохраняет значение в y_curr
+# def stepper_rk4(params, y_curr, dt):
+#     k1 = np.zeros(DIM)
+#     k2 = np.zeros(DIM)
+#     k3 = np.zeros(DIM)
+#     k4 = np.zeros(DIM)
+#
+#     rhs(params, y_curr, k1)
+#
+#     for i in range(DIM):
+#         k2[i] = y_curr[i] + k1[i] * dt / 2.0
+#     rhs(params, k2, k2)
+#
+#     for i in range(DIM):
+#         k3[i] = y_curr[i] + k2[i] * dt / 2.0
+#     rhs(params, k3, k3)
+#
+#     for i in range(DIM):
+#         k4[i] = y_curr[i] + k3[i] * dt
+#     rhs(params, k4, k4)
+#
+#     for i in range(DIM):
+#         y_curr[i] += (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0
+
 def stepper_rk4(params, y_curr, dt):
-    k1 = np.zeros(DIM)
-    k2 = np.zeros(DIM)
-    k3 = np.zeros(DIM)
-    k4 = np.zeros(DIM)
+    k1 = np.zeros(DIM, dtype=np.float64)
+    k2 = np.zeros(DIM, dtype=np.float64)
+    k3 = np.zeros(DIM, dtype=np.float64)
+    k4 = np.zeros(DIM, dtype=np.float64)
+    func = np.zeros(DIM, dtype=np.float64)
 
     rhs(params, y_curr, k1)
 
     for i in range(DIM):
-        k2[i] = y_curr[i] + k1[i] * dt / 2.0
-    rhs(params, k2, k2)
+        func[i] = y_curr[i] + k1[i] * dt / 2.0
+    rhs(params, func, k2)
 
     for i in range(DIM):
-        k3[i] = y_curr[i] + k2[i] * dt / 2.0
-    rhs(params, k3, k3)
+        func[i] = y_curr[i] + k2[i] * dt / 2.0
+    rhs(params, func, k3)
 
     for i in range(DIM):
-        k4[i] = y_curr[i] + k3[i] * dt
-    rhs(params, k4, k4)
+        func[i] = y_curr[i] + k3[i] * dt
+    rhs(params, func, k4)
 
     for i in range(DIM):
         y_curr[i] += (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0
@@ -41,8 +65,8 @@ def rhs(params, y, dydt):
 
 
 def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end):
-    first_derivative_prev = np.zeros(DIM)
-    first_derivative_curr = np.zeros(DIM)
+    first_derivative_prev = np.zeros(DIM, dtype=np.float64)
+    first_derivative_curr = np.zeros(DIM, dtype=np.float64)
     kneading_index = 0
     kneadings_weighted_sum = 0
 
@@ -94,15 +118,42 @@ def sweep(kneadings_weighted_sum_set,
         i = idx // a_count
         j = idx % a_count
 
-        params = np.array([a_start + i * a_step, b_start + j * b_step], dtype=np.float32)
-        y_init = np.array([1e-8, 0.0, 0.0], dtype=np.float32)
+        params = np.array([a_start + i * a_step, b_start + j * b_step], dtype=np.float64)
+        y_init = np.array([1e-8, 0.0, 0.0], dtype=np.float64)
 
         result = integrator_rk4(y_init.copy(), params, dt, n, stride, kneadings_start, kneadings_end)
 
-        # Сохраняем результаты вместе с параметрами
         results.append((params[0], params[1], result))
 
     return results
+
+
+def decimal_to_binary(num):
+    if num < 0:
+        return "-" + decimal_to_binary(-num)
+
+    integer_part = int(num)
+    fractional_part = num - integer_part
+
+    binary_integer = ""
+    if integer_part == 0:
+        binary_integer = "0"
+    else:
+        while integer_part > 0:
+            binary_integer = str(integer_part % 2) + binary_integer
+            integer_part //= 2
+
+    binary_fractional = ""
+    while fractional_part > 0 and len(binary_fractional) < 10:
+        fractional_part *= 2
+        bit = int(fractional_part)
+        binary_fractional += str(bit)
+        fractional_part -= bit
+
+    if binary_fractional:
+        return f"{binary_integer}{binary_fractional}"
+    else:
+        return binary_integer
 
 
 if __name__ == "__main__":
@@ -111,9 +162,9 @@ if __name__ == "__main__":
     stride = 1
     max_kneadings = 20
     sweep_size = 5
-    kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size)
+    kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size, dtype=np.float64)
 
-    a_start = 0.0
+    a_start = 0.00
     a_end = 2.2
     b_start = 0
     b_end = 1.5
@@ -137,7 +188,9 @@ if __name__ == "__main__":
     print("Results:")
 
     for a_val, b_val, result in results:
-        # Преобразуем результат в двоичный формат и выводим с параметрами
-        binary_result = format(int(result), 'b') if result not in [InfinityError, KneadingDoNotEndError] else 'Error'
+        if result in [InfinityError, KneadingDoNotEndError]:
+            binary_result = 'Error'
+        else:
+            binary_result = decimal_to_binary(result)
 
         print(f"a: {a_val:.2f}, b: {b_val:.2f} => Result: {binary_result} (Raw: {result})")
