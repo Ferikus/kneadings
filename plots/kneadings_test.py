@@ -34,13 +34,14 @@ class CustomSystem:
 # logCircleDistObs = NamedObservable(sqDistToCircle, "circleLogDist")
 
 if __name__ == "__main__":
-    curSys = CustomSystem(0.5, 0.5)
+    # curSys = CustomSystem(0.5, 0.5)
+    curSys = CustomSystem(0.55, 0.00)
     curRhs = curSys.getSystem
     coordNames = ['x', 'y', 'z']
 
     # tSkip = 1.
-    tSkip = 5000.
-    tAttr = 20.
+    tSkip = 0.
+    tAttr = 100.
 
     # initPt = np.array([1e-8, 0.0, 0.0])
 
@@ -61,20 +62,20 @@ if __name__ == "__main__":
 
     print("PLOT")
     plotDataWithLayout([traj, pts], [[('t', 'x')], [('t', 'y')], [('t', 'z')]],
-                       coordLabels, 'trajectory_plot.png', plotParams)
+                       coordLabels, 'trajectory_plot1.png', plotParams)
 
     # Проекции фазового пространства
     print("PLOT XY")
     plotDataWithLayout([traj, pts], [[('x', 'y')]],
-                       coordLabels, 'trajectory_xy_plot.png', plotParams)
+                       coordLabels, 'trajectory_xy_plot1.png', plotParams)
 
     print("PLOT YZ")
     plotDataWithLayout([traj, pts], [[('y', 'z')]],
-                       coordLabels, 'trajectory_yz_plot.png', plotParams)
+                       coordLabels, 'trajectory_yz_plot1.png', plotParams)
 
     print("PLOT XZ")
     plotDataWithLayout([traj, pts], [[('x', 'z')]],
-                       coordLabels, 'trajectory_xz_plot.png', plotParams)
+                       coordLabels, 'trajectory_xz_plot1.png', plotParams)
 
 
 

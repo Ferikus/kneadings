@@ -34,20 +34,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python tests.Python tests in cuda_test.py.executor": "Run",
-    "Python tests.Python tests in rk4_test.py.executor": "Run",
-    "Python.cpu_version.executor": "Run",
-    "Python.cuda_test.executor": "Run",
-    "Python.kneadings_test.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.serious_test.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/Вячеслав/source/repos/kneadings"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python tests.Python tests in cuda_test.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in rk4_test.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.2 — копия.executor&quot;: &quot;Run&quot;,
+    &quot;Python.cpu_version.executor&quot;: &quot;Run&quot;,
+    &quot;Python.cuda_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.kneadings_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.serious_test.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Вячеслав/source/repos/kneadings&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="kneadings" />

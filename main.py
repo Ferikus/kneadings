@@ -10,18 +10,18 @@ InfinityError = -0.2
 KneadingDoNotEndError = -0.1
 
 
-# Значение системы ДУ в точке
 @cuda.jit
 def rhs(params, y, dydt):
+    """Значение системы ДУ в точке"""
     a, b = params
     dydt[0] = y[1]
     dydt[1] = y[2]
     dydt[2] = -b * y[2] - y[1] + a * y[0] - a * (y[0] ** 3)
 
 
-# Шаг РК-4, сохраняет значение в y_curr
 @cuda.jit
 def stepper_rk4(params, y_curr, dt):
+    """Шаг РК-4, сохраняет значение в y_curr"""
     k1 = cuda.local.array(DIM, dtype=np.float64)
     k2 = cuda.local.array(DIM, dtype=np.float64)
     k3 = cuda.local.array(DIM, dtype=np.float64)
@@ -44,6 +44,7 @@ def stepper_rk4(params, y_curr, dt):
 
     for i in range(DIM):
         y_curr[i] = y_curr[i] + (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0
+
 
 @cuda.jit
 def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end):
@@ -88,9 +89,9 @@ def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end
     return KneadingDoNotEndError
 
 
-# Convert kneading into symbolic sequence (decimal -> binary)
 @njit
 def convert_kneading(num):
+    """Convert kneading into symbolic sequence (decimal -> binary)"""
     if num < 0:
         return "Error"
 

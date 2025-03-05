@@ -7,30 +7,6 @@ InfinityError = -0.2
 KneadingDoNotEndError = -0.1
 
 
-# Шаг РК-4, сохраняет значение в y_curr
-# def stepper_rk4(params, y_curr, dt):
-#     k1 = np.zeros(DIM)
-#     k2 = np.zeros(DIM)
-#     k3 = np.zeros(DIM)
-#     k4 = np.zeros(DIM)
-#
-#     rhs(params, y_curr, k1)
-#
-#     for i in range(DIM):
-#         k2[i] = y_curr[i] + k1[i] * dt / 2.0
-#     rhs(params, k2, k2)
-#
-#     for i in range(DIM):
-#         k3[i] = y_curr[i] + k2[i] * dt / 2.0
-#     rhs(params, k3, k3)
-#
-#     for i in range(DIM):
-#         k4[i] = y_curr[i] + k3[i] * dt
-#     rhs(params, k4, k4)
-#
-#     for i in range(DIM):
-#         y_curr[i] += (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0
-
 def stepper_rk4(params, y_curr, dt):
     k1 = np.zeros(DIM, dtype=np.float64)
     k2 = np.zeros(DIM, dtype=np.float64)
@@ -56,7 +32,6 @@ def stepper_rk4(params, y_curr, dt):
         y_curr[i] += (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0
 
 
-# Значение системы ДУ в точке
 def rhs(params, y, dydt):
     a, b = params
     dydt[0] = y[1]
@@ -73,6 +48,7 @@ def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end
     rhs(params, y_curr, first_derivative_prev)
 
     for i in range(1, n):
+
         for j in range(stride):
             stepper_rk4(params, y_curr, dt)
 
@@ -82,14 +58,18 @@ def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end
 
         rhs(params, y_curr, first_derivative_curr)
         if first_derivative_prev[0] * first_derivative_curr[0] < 0:
+
             if first_derivative_curr[1] < 0 and y_curr[0] > 1:
                 if kneading_index >= kneadings_start:
+                    # 1
                     kneadings_weighted_sum += 1 / (2.0 ** (-kneading_index + kneadings_end + 1))
                 kneading_index += 1
+
             elif first_derivative_curr[1] > 0 and y_curr[0] < -1:
+                # 0
                 kneading_index += 1
 
-        first_derivative_prev[:] = first_derivative_curr
+        first_derivative_prev[0] = first_derivative_curr[0]
 
     if kneading_index > kneadings_end:
         return kneadings_weighted_sum
@@ -109,6 +89,7 @@ def sweep(kneadings_weighted_sum_set,
           stride,
           kneadings_start,
           kneadings_end):
+
     a_step = (a_end - a_start) / (a_count - 1)
     b_step = (b_end - b_start) / (b_count - 1)
 
@@ -128,9 +109,9 @@ def sweep(kneadings_weighted_sum_set,
     return results
 
 
-def decimal_to_binary(num):
+def convert_kneading(num):
     if num < 0:
-        return "-" + decimal_to_binary(-num)
+        return "Error"
 
     integer_part = int(num)
     fractional_part = num - integer_part
@@ -150,10 +131,7 @@ def decimal_to_binary(num):
         binary_fractional += str(bit)
         fractional_part -= bit
 
-    if binary_fractional:
-        return f"{binary_integer}{binary_fractional}"
-    else:
-        return binary_integer
+    return binary_integer + binary_fractional
 
 
 if __name__ == "__main__":
@@ -164,9 +142,9 @@ if __name__ == "__main__":
     sweep_size = 5
     kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size, dtype=np.float64)
 
-    a_start = 0.00
+    a_start = 0.0
     a_end = 2.2
-    b_start = 0
+    b_start = 0.0
     b_end = 1.5
 
     results = sweep(
@@ -181,16 +159,11 @@ if __name__ == "__main__":
         n,
         stride,
         0,
-        10,
+        max_kneadings,
     )
 
-    # Вывод результатов в двоичном формате
     print("Results:")
-
     for a_val, b_val, result in results:
-        if result in [InfinityError, KneadingDoNotEndError]:
-            binary_result = 'Error'
-        else:
-            binary_result = decimal_to_binary(result)
+        binary_result = convert_kneading(result)
 
-        print(f"a: {a_val:.2f}, b: {b_val:.2f} => Result: {binary_result} (Raw: {result})")
+        print(f"a: {a_val:.2f}, b: {b_val:.2f} => {binary_result} (Raw: {result})")
