@@ -71,8 +71,8 @@ def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end
 
         first_derivative_prev[0] = first_derivative_curr[0]
 
-    if kneading_index > kneadings_end:
-        return kneadings_weighted_sum
+        if kneading_index > kneadings_end:
+            return kneadings_weighted_sum
 
     return KneadingDoNotEndError
 
@@ -118,7 +118,7 @@ def convert_kneading(num):
 
     binary_integer = ""
     if integer_part == 0:
-        binary_integer = "0"
+        binary_integer = ""
     else:
         while integer_part > 0:
             binary_integer = str(integer_part % 2) + binary_integer
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     n = 30000
     stride = 1
     max_kneadings = 20
-    sweep_size = 5
+    sweep_size = 2
     kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size, dtype=np.float64)
 
     a_start = 0.0

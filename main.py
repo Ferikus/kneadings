@@ -83,8 +83,8 @@ def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end
 
         first_derivative_prev[0] = first_derivative_curr[0]
 
-    if kneading_index > kneadings_end:
-        return kneadings_weighted_sum
+        if kneading_index > kneadings_end:
+            return kneadings_weighted_sum
 
     return KneadingDoNotEndError
 
@@ -94,17 +94,19 @@ def convert_kneading(num):
     """Convert kneading into symbolic sequence (decimal -> binary)"""
     if num < 0:
         return "Error"
+    if num >= 1:
+        raise ValueError("Number must be less than 1")
 
     integer_part = int(num)
     fractional_part = num - integer_part
 
-    binary_integer = ""
-    if integer_part == 0:
-        binary_integer = "0"
-    else:
-        while integer_part > 0:
-            binary_integer = str(integer_part % 2) + binary_integer
-            integer_part //= 2
+    # binary_integer = ""
+    # if integer_part == 0:
+    #     binary_integer = ""
+    # else:
+    #     while integer_part > 0:
+    #         binary_integer = str(integer_part % 2) + binary_integer
+    #         integer_part //= 2
 
     binary_fractional = ""
     while fractional_part > 0 and len(binary_fractional) < 10:
@@ -113,7 +115,8 @@ def convert_kneading(num):
         binary_fractional += str(bit)
         fractional_part -= bit
 
-    return binary_integer + binary_fractional
+    # return binary_integer + binary_fractional
+    return binary_fractional
 
 
 # CUDA Kernel
@@ -206,8 +209,8 @@ if __name__ == "__main__":
     dt = 0.01
     n = 30000
     stride = 1
-    max_kneadings = 20
-    sweep_size = 5
+    max_kneadings = 7
+    sweep_size = 1000
     kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size)
 
     a_start = 0.0
@@ -228,6 +231,16 @@ if __name__ == "__main__":
         stride,
         0,
         max_kneadings
+    )
+
+    np.savez(
+        'kneadings_results.npz',
+        a_start=a_start,
+        a_end=a_end,
+        b_start=b_start,
+        b_end=b_end,
+        sweep_size=sweep_size,
+        results=kneadings_weighted_sum_set
     )
 
     print("Results:")
