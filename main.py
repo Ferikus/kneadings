@@ -210,7 +210,7 @@ if __name__ == "__main__":
     n = 30000
     stride = 1
     max_kneadings = 7
-    sweep_size = 1000
+    sweep_size = 300
     kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size)
 
     a_start = 0.0
