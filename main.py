@@ -123,6 +123,7 @@ def convert_kneading(num):
 @cuda.jit
 def sweep_threads(
     kneadings_weighted_sum_set_gpu,
+    y_inits,
     a_start,
     a_end,
     a_count,
@@ -151,7 +152,9 @@ def sweep_threads(
         params[0] = a_start + i * a_step
         params[1] = b_start + j * b_step
 
-        y_init[0], y_init[1], y_init[2] = 1e-8, 0.0, 0.0
+        y_init[0] = y_inits[idx * DIM + 0]
+        y_init[1] = y_inits[idx * DIM + 1]
+        y_init[2] = y_inits[idx * DIM + 2]
 
         kneadings_weighted_sum_set_gpu[i * b_count + j] = integrator_rk4(y_init, params, dt, n, stride,
                                                                          kneadings_start, kneadings_end)
@@ -159,6 +162,7 @@ def sweep_threads(
 
 def sweep(
     kneadings_weighted_sum_set,
+    y_inits,
     a_start,
     a_end,
     a_count,
@@ -175,6 +179,10 @@ def sweep(
     total_parameter_space_size = a_count * b_count
     kneadings_weighted_sum_set_gpu = cuda.device_array(total_parameter_space_size)
 
+    y_inits_gpu = cuda.device_array(len(y_inits))
+    for i in range(len(y_inits)):
+        y_inits_gpu[i] = y_inits[i]
+
     grid_x_dimension = (total_parameter_space_size + THREADS_PER_BLOCK - 1) // THREADS_PER_BLOCK
     dim_grid = grid_x_dimension
     dim_block = THREADS_PER_BLOCK
@@ -187,6 +195,7 @@ def sweep(
     # Call CUDA kernel
     sweep_threads[dim_grid, dim_block](  # blocks, threads
         kneadings_weighted_sum_set_gpu,
+        y_inits_gpu,
         a_start,
         a_end,
         a_count,
@@ -210,7 +219,7 @@ if __name__ == "__main__":
     n = 30000
     stride = 1
     max_kneadings = 7
-    sweep_size = 300
+    sweep_size = 100
     kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size)
 
     a_start = 0.0
@@ -218,8 +227,13 @@ if __name__ == "__main__":
     b_start = 0.0
     b_end = 1.5
 
+    # сюда передавать массив координат
+    y_inits = [1e-8, 0.0, 0.0] * sweep_size * sweep_size
+    # добавить проверку на размерность == DIM ?
+
     sweep(
         kneadings_weighted_sum_set,
+        y_inits,
         a_start,
         a_end,
         sweep_size,
