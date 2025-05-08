@@ -1,5 +1,5 @@
 def decimal_to_binary(num):
-    """Convert kneading into symbolic sequence (decimal -> binary)"""
+    """Converts decimal to binary"""
     if num < 0:
         return "Error"
     if num >= 1:
@@ -28,6 +28,7 @@ def decimal_to_binary(num):
 
 
 def binary_to_decimal(binary_str):
+    """Converts binary to decimal"""
     decimal = 0.0
     for i, bit in enumerate(binary_str, 1):
         # print(f"{bit} -- {i}")

@@ -1,5 +1,6 @@
 import numpy as np
 from numba import cuda, njit
+from mapping.convert import decimal_to_binary
 
 DIM = 3
 THREADS_PER_BLOCK = 512
@@ -12,7 +13,7 @@ KneadingDoNotEndError = -0.1
 
 @cuda.jit
 def rhs(params, y, dydt):
-    """Значение системы ДУ в точке"""
+    """Calculates the right-hand side of the system"""
     a, b = params
     dydt[0] = y[1]
     dydt[1] = y[2]
@@ -21,7 +22,7 @@ def rhs(params, y, dydt):
 
 @cuda.jit
 def stepper_rk4(params, y_curr, dt):
-    """Шаг РК-4, сохраняет значение в y_curr"""
+    """Makes RK-4 step and saves the value in y_curr"""
     k1 = cuda.local.array(DIM, dtype=np.float64)
     k2 = cuda.local.array(DIM, dtype=np.float64)
     k3 = cuda.local.array(DIM, dtype=np.float64)
@@ -48,6 +49,7 @@ def stepper_rk4(params, y_curr, dt):
 
 @cuda.jit
 def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end):
+    """Calculates kneadings during integration"""
     # n -- количество шагов интегрирования
     # stride -- через сколько шагов начинаем считать нидинги
     # first_derivative_curr, prev -- значения производных системы на текущем шаге и на предыдущем
@@ -89,37 +91,6 @@ def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end
     return KneadingDoNotEndError
 
 
-@njit
-def convert_kneading(num):
-    """Convert kneading into symbolic sequence (decimal -> binary)"""
-    if num < 0:
-        return "Error"
-    if num >= 1:
-        raise ValueError("Number must be less than 1")
-
-    integer_part = int(num)
-    fractional_part = num - integer_part
-
-    # binary_integer = ""
-    # if integer_part == 0:
-    #     binary_integer = ""
-    # else:
-    #     while integer_part > 0:
-    #         binary_integer = str(integer_part % 2) + binary_integer
-    #         integer_part //= 2
-
-    binary_fractional = ""
-    while fractional_part > 0 and len(binary_fractional) < 10:
-        fractional_part *= 2
-        bit = int(fractional_part)
-        binary_fractional += str(bit)
-        fractional_part -= bit
-
-    # return binary_integer + binary_fractional
-    return binary_fractional
-
-
-# CUDA Kernel
 @cuda.jit
 def sweep_threads(
     kneadings_weighted_sum_set_gpu,
@@ -136,6 +107,7 @@ def sweep_threads(
     kneadings_start,
     kneadings_end,
 ):
+    """CUDA kernel"""
     idx = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
 
     a_step = (a_end - a_start) / (a_count - 1)
@@ -175,7 +147,7 @@ def sweep(
     kneadings_start,
     kneadings_end,
 ):
-
+    """Calls CUDA kernel and gets kneadings set back from GPU"""
     total_parameter_space_size = a_count * b_count
     kneadings_weighted_sum_set_gpu = cuda.device_array(total_parameter_space_size)
 
@@ -222,6 +194,8 @@ if __name__ == "__main__":
     sweep_size = 100
     kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size)
 
+    # сделать присваивание границ a и b + передача массива с нач коорд через файл npz из base_analysis
+
     a_start = 0.0
     a_end = 2.2
     b_start = 0.0
@@ -263,7 +237,7 @@ if __name__ == "__main__":
         j = idx % sweep_size
 
         kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        kneading_symbolic = convert_kneading(kneading_weighted_sum)
+        kneading_symbolic = decimal_to_binary(kneading_weighted_sum)
 
         print(f"a: {a_start + i * (a_end - a_start) / (sweep_size - 1):.2f}, "
               f"b: {b_start + j * (b_end - b_start) / (sweep_size - 1):.2f} => "
