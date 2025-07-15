@@ -1,75 +1,198 @@
 import numpy as np
+from numba import cuda, njit
+from mapping.convert import decimal_to_binary
+# from system_analysis.get_inits import inits  # правильная ли это передача массива
 
-DIM = 3
+DIM = 4
+DIM_REDUCED = DIM - 1
+THREADS_PER_BLOCK = 512
+
 INFINITY = 100000
 
 InfinityError = -0.2
 KneadingDoNotEndError = -0.1
 
 
+def det4x4(m):
+    det = 0.0
+    sign = 1.0
+
+    minor = [0.] * 9
+
+    for col in range(4):
+        minor_row_idx = 0
+        for i in range(1, 4):
+            minor_col_idx = 0
+            for j in range(4):
+                if j != col:
+                    minor[minor_row_idx * 3 + minor_col_idx] = m[i * 4 + j]
+                    minor_col_idx += 1
+            minor_row_idx += 1
+
+        det_minor = (
+            minor[0] * (minor[4] * minor[8] - minor[5] * minor[7]) -
+            minor[1] * (minor[3] * minor[8] - minor[5] * minor[6]) +
+            minor[2] * (minor[3] * minor[7] - minor[4] * minor[6])
+        )
+
+        det += sign * m[0 * 4 + col] * det_minor
+        sign *= -1.0
+    return det
+
+
+def bary_expansion(pt):
+    """
+    globalPtCoords must be a 3d vector with 0 <= x <= y <= z <= 2pi, i.e. inside a CIR
+    returns an expansion of (globalPtCoords - center of mass) in barycentric coordinates
+    """
+
+    pt_o = [0.] * 3
+    pt_a = [0.] * 3
+    pt_b = [0.] * 3
+    pt_c = [0.] * 3
+    pt_w = [0.] * 3
+    vec_wa = [0.] * 3
+    vec_wb = [0.] * 3
+    vec_wc = [0.] * 3
+    vec_wo = [0.] * 3
+    mat_bary = [0.] * 16
+    rhs = [0.] * 4
+
+    pt_o[0] = 0.0; pt_o[1] = 0.0; pt_o[2] = 0.0
+    pt_a[0] = 0.0; pt_a[1] = 0.0; pt_a[2] = 2 * np.pi
+    pt_b[0] = 0.0; pt_b[1] = 2 * np.pi; pt_b[2] = 2 * np.pi
+    pt_c[0] = 2 * np.pi; pt_c[1] = 2 * np.pi; pt_c[2] = 2 * np.pi
+
+    pt_w[0] = 0.25 * (pt_a[0] + pt_b[0] + pt_c[0] - 3 * pt_o[0])
+    pt_w[1] = 0.25 * (pt_a[1] + pt_b[1] + pt_c[1] - 3 * pt_o[1])
+    pt_w[2] = 0.25 * (pt_a[2] + pt_b[2] + pt_c[2] - 3 * pt_o[2])
+
+    for i in range(3):
+        vec_wa[i] = pt_a[i] - pt_w[i]
+        vec_wb[i] = pt_b[i] - pt_w[i]
+        vec_wc[i] = pt_c[i] - pt_w[i]
+        vec_wo[i] = pt_o[i] - pt_w[i]
+
+        mat_bary[4 * i] = vec_wa[i]
+        mat_bary[4 * i + 1] = vec_wb[i]
+        mat_bary[4 * i + 2] = vec_wc[i]
+        mat_bary[4 * i + 3] = vec_wo[i]
+
+        rhs[i] = pt[i] - pt_w[i]
+
+    mat_bary[12] = 1.; mat_bary[13] = 1.; mat_bary[14] = 1.; mat_bary[15] = 1.
+    rhs[3] = 1.
+
+    main_det = det4x4(mat_bary)
+
+    bary_coords = [0.] * 4
+
+    if abs(main_det) < 1e-12:
+        bary_coords[:] = 0.
+        return bary_coords
+
+    # заполняем координаты решая систему методом Крамера
+    for col in range(4):
+        modified_mat = mat_bary.copy()
+        for row in range(4):
+            modified_mat[4 * row + col] = rhs[row]
+
+        coord_det = det4x4(modified_mat)
+        bary_coords[col] = coord_det / main_det
+
+    return bary_coords
+
+
+def get_domain_num(bary_expansion):
+    min_coord = bary_expansion[0]
+    i = 0
+    while i < 4:
+        if bary_expansion[domain_num] < min_coord:
+            min_coord = bary_expansion[domain_num]
+            domain_num = i
+    return domain_num
+
+
+def full_rhs(params, phis):
+    """Calculates the right-hand side of the full system"""
+    w, a, b, r = params
+    rhs_phis = [w] * 4
+    for i in range(4):
+        for j in range(4):
+            rhs_phis[i] += 0.25 * (-np.sin(phis[i] - phis[j] + a) + r * np.sin(2 * (phis[i] - phis[j]) + b))
+    return rhs_phis
+
+
+def reduced_rhs(params, psis):
+    """Calculates the right-hand side of the reduced system"""
+    phis = [0.] + psis
+    rhs_phis = full_rhs(phis, params)
+    rhs_psis = [0.] * 4
+    for i in range(4):
+        rhs_psis[i] = rhs_phis[i] - rhs_phis[0]
+    return rhs_psis[1:]
+
+
+def avg_face_dist_deriv(params, pt):
+    """Average distance from the point to the faces of the thetrahedron"""
+    x, y, z = pt
+    sys_curr = reduced_rhs(pt)
+    afdd = (1.0*x - 0.5*y) * sys_curr[0] + (-0.5*x + 1.0*y - 0.5*z) * sys_curr[1] + (-0.5*y + 1.0*z - np.pi) * sys_curr[2]
+    return afdd
+
+
 def stepper_rk4(params, y_curr, dt):
-    k1 = np.zeros(DIM, dtype=np.float64)
-    k2 = np.zeros(DIM, dtype=np.float64)
-    k3 = np.zeros(DIM, dtype=np.float64)
-    k4 = np.zeros(DIM, dtype=np.float64)
-    func = np.zeros(DIM, dtype=np.float64)
+    """Makes RK-4 step and saves the value in y_curr"""
+    k1 = reduced_rhs(params, y_curr)
 
-    rhs(params, y_curr, k1)
+    y_temp = [y_curr[i] + k1[i] * dt / 2.0 for i in range(DIM)]
+    k2 = reduced_rhs(params, y_temp)
 
-    for i in range(DIM):
-        func[i] = y_curr[i] + k1[i] * dt / 2.0
-    rhs(params, func, k2)
+    y_temp = [y_curr[i] + k2[i] * dt / 2.0 for i in range(DIM)]
+    k3 = reduced_rhs(params, y_temp)
 
-    for i in range(DIM):
-        func[i] = y_curr[i] + k2[i] * dt / 2.0
-    rhs(params, func, k3)
+    y_temp = [y_curr[i] + k3[i] * dt for i in range(DIM)]
+    k4 = reduced_rhs(params, y_temp)
 
-    for i in range(DIM):
-        func[i] = y_curr[i] + k3[i] * dt
-    rhs(params, func, k4)
-
-    for i in range(DIM):
-        y_curr[i] += (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0
-
-
-def rhs(params, y, dydt):
-    a, b = params
-    dydt[0] = y[1]
-    dydt[1] = y[2]
-    dydt[2] = -b * y[2] - y[1] + a * y[0] - a * (y[0] ** 3)
+    return [y_curr[i] + (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0 for i in range(DIM)]
 
 
 def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end):
-    first_derivative_prev = np.zeros(DIM, dtype=np.float64)
-    first_derivative_curr = np.zeros(DIM, dtype=np.float64)
+    """Calculates kneadings during integration"""
+    # n -- количество шагов интегрирования
+    # stride -- через сколько шагов начинаем считать нидинги
+    # first_derivative_curr, prev -- значения производных системы на текущем шаге и на предыдущем
+
+    deriv_prev = 0
+    deriv_curr = 0
     kneading_index = 0
     kneadings_weighted_sum = 0
+    domain_num = 0
 
-    rhs(params, y_curr, first_derivative_prev)
+    deriv_prev = avg_face_dist_deriv(params, y_curr)
 
     for i in range(1, n):
 
         for j in range(stride):
             stepper_rk4(params, y_curr, dt)
 
-        for k in range(DIM):
+        bary_coords = bary_expansion(y_curr)  # получаем барицентрические координаты точки
+        domain_num = get_domain_num(bary_coords)  # получаем номер её подтетраэдра
+
+        for k in range(DIM_REDUCED):
             if y_curr[k] > INFINITY or y_curr[k] < -INFINITY:
                 return InfinityError
 
-        rhs(params, y_curr, first_derivative_curr)
-        if first_derivative_prev[0] * first_derivative_curr[0] < 0:
+        deriv_curr = avg_face_dist_deriv(params, y_curr)
 
-            if first_derivative_curr[1] < 0 and y_curr[0] > 1:
-                if kneading_index >= kneadings_start:
-                    # 1
-                    kneadings_weighted_sum += 1 / (2.0 ** (-kneading_index + kneadings_end + 1))
-                kneading_index += 1
+        # проверяем, происходит ли max по расстоянию
+        if deriv_prev > 0 > deriv_curr:
 
-            elif first_derivative_curr[1] > 0 and y_curr[0] < -1:
-                # 0
-                kneading_index += 1
+            if kneading_index >= kneadings_start:
+                kneadings_weighted_sum += domain_num * 1 / (4.0 ** (-kneading_index + kneadings_end + 1))
+            kneading_index += 1
 
-        first_derivative_prev[0] = first_derivative_curr[0]
+        deriv_prev = deriv_curr
 
         if kneading_index > kneadings_end:
             return kneadings_weighted_sum
@@ -77,19 +200,30 @@ def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end
     return KneadingDoNotEndError
 
 
-def sweep(kneadings_weighted_sum_set,
-          a_start,
-          a_end,
-          a_count,
-          b_start,
-          b_end,
-          b_count,
-          dt,
-          n,
-          stride,
-          kneadings_start,
-          kneadings_end):
+def sweep(
+    kneadings_weighted_sum_set,
+    y_inits,
+    a_start,
+    a_end,
+    a_count,
+    b_start,
+    b_end,
+    b_count,
+    dt,
+    n,
+    stride,
+    kneadings_start,
+    kneadings_end,
+):
+    """Calls CUDA kernel and gets kneadings set back from GPU"""
+    # total_parameter_space_size = a_count * b_count
+    # kneadings_weighted_sum_set_gpu = cuda.device_array(total_parameter_space_size)
+    #
+    # y_inits_gpu = cuda.device_array(len(y_inits))
+    # for i in range(len(y_inits)):
+    #     y_inits_gpu[i] = y_inits[i]
 
+    # ???
     a_step = (a_end - a_start) / (a_count - 1)
     b_step = (b_end - b_start) / (b_count - 1)
 
@@ -99,56 +233,45 @@ def sweep(kneadings_weighted_sum_set,
         i = idx // a_count
         j = idx % a_count
 
-        params = np.array([a_start + i * a_step, b_start + j * b_step], dtype=np.float64)
-        y_init = np.array([1e-8, 0.0, 0.0], dtype=np.float64)
+        # ???
+        # params = cuda.local.array(2, dtype=np.float64)
+        # y_init = cuda.local.array(DIM_REDUCED, dtype=np.float64)
+        #
+        # params[0] = a_start + i * a_step
+        # params[1] = b_start + j * b_step
+        #
+        # y_init[0] = y_inits[idx * DIM_REDUCED + 0]
+        # y_init[1] = y_inits[idx * DIM_REDUCED + 1]
+        # y_init[2] = y_inits[idx * DIM_REDUCED + 2]
 
-        result = integrator_rk4(y_init.copy(), params, dt, n, stride, kneadings_start, kneadings_end)
-
-        results.append((params[0], params[1], result))
+        result = integrator_rk4(y_init, params, dt, n, stride, kneadings_start, kneadings_end)
+        results.append(result)  # передача альфа-бета?
 
     return results
-
-
-def convert_kneading(num):
-    if num < 0:
-        return "Error"
-
-    integer_part = int(num)
-    fractional_part = num - integer_part
-
-    binary_integer = ""
-    if integer_part == 0:
-        binary_integer = ""
-    else:
-        while integer_part > 0:
-            binary_integer = str(integer_part % 2) + binary_integer
-            integer_part //= 2
-
-    binary_fractional = ""
-    while fractional_part > 0 and len(binary_fractional) < 10:
-        fractional_part *= 2
-        bit = int(fractional_part)
-        binary_fractional += str(bit)
-        fractional_part -= bit
-
-    return binary_integer + binary_fractional
 
 
 if __name__ == "__main__":
     dt = 0.01
     n = 30000
     stride = 1
-    max_kneadings = 20
-    sweep_size = 2
-    kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size, dtype=np.float64)
+    max_kneadings = 7
+    sweep_size = 300
+    kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size)
+
+    # сделать присваивание границ a и b + передача массива с нач коорд через файл npz из base_analysis
 
     a_start = 0.0
     a_end = 2.2
     b_start = 0.0
     b_end = 1.5
 
-    results = sweep(
+    # сюда передавать массив координат
+    y_inits = [1e-8, 0.0, 0.0] * sweep_size * sweep_size
+    # добавить проверку на размерность == DIM ?
+
+    sweep(
         kneadings_weighted_sum_set,
+        y_inits,
         a_start,
         a_end,
         sweep_size,
@@ -159,11 +282,27 @@ if __name__ == "__main__":
         n,
         stride,
         0,
-        max_kneadings,
+        max_kneadings
+    )
+
+    np.savez(
+        'kneadings_results.npz',
+        a_start=a_start,
+        a_end=a_end,
+        b_start=b_start,
+        b_end=b_end,
+        sweep_size=sweep_size,
+        results=kneadings_weighted_sum_set
     )
 
     print("Results:")
-    for a_val, b_val, result in results:
-        binary_result = convert_kneading(result)
+    for idx in range(sweep_size * sweep_size):
+        i = idx // sweep_size
+        j = idx % sweep_size
 
-        print(f"a: {a_val:.2f}, b: {b_val:.2f} => {binary_result} (Raw: {result})")
+        kneading_weighted_sum = kneadings_weighted_sum_set[idx]
+        kneading_symbolic = decimal_to_binary(kneading_weighted_sum)
+
+        print(f"a: {a_start + i * (a_end - a_start) / (sweep_size - 1):.2f}, "
+              f"b: {b_start + j * (b_end - b_start) / (sweep_size - 1):.2f} => "
+              f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")

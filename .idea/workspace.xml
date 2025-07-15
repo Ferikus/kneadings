@@ -5,14 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="580c4c10-eddb-4d1b-a0a9-9db1346a79eb" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.gitmodules" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/eq_finder" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/main_prototype.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/system_analysis/get_inits.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/system_analysis/system.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/cpu_version_prototype.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eq_finder" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eq_finder/SystOsscills.py" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder/SystOsscills.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eq_finder/scriptUtils.py" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder/scriptUtils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eq_finder/systems_fun.py" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder/systems_fun.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kneadings_results.npz" beforeDir="false" afterPath="$PROJECT_DIR$/kneadings_results.npz" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mapping/convert.py" beforeDir="false" afterPath="$PROJECT_DIR$/mapping/convert.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mapping/mode_map.png" beforeDir="false" afterPath="$PROJECT_DIR$/mapping/mode_map.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/system_analysis/base_analysis.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/cpu_version.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/cpu_version.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,31 +44,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python tests.Python tests in cuda_test.py.executor": "Run",
-    "Python tests.Python tests in rk4_test.py.executor": "Run",
-    "Python.1.executor": "Run",
-    "Python.111.executor": "Run",
-    "Python.2 — копия.executor": "Run",
-    "Python.base_analysis.executor": "Run",
-    "Python.bcsd_analyzer.executor": "Run",
-    "Python.brats_analyzer.executor": "Run",
-    "Python.cpu_version.executor": "Run",
-    "Python.cuda_test.executor": "Run",
-    "Python.data_gen_new.executor": "Run",
-    "Python.kneadings_test.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.message.executor": "Run",
-    "Python.plot_kneadings.executor": "Run",
-    "Python.plot_kneadings_1.executor": "Run",
-    "Python.scriptUtils.executor": "Run",
-    "Python.serious_test.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/Вячеслав/source/repos/kneadings"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python tests.Python tests in cuda_test.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in rk4_test.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.111.executor&quot;: &quot;Run&quot;,
+    &quot;Python.2 — копия.executor&quot;: &quot;Run&quot;,
+    &quot;Python.base_analysis.executor&quot;: &quot;Run&quot;,
+    &quot;Python.bcsd_analyzer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.brats_analyzer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.color_text_subs.executor&quot;: &quot;Run&quot;,
+    &quot;Python.cpu_version.executor&quot;: &quot;Run&quot;,
+    &quot;Python.cuda_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.data_gen_new.executor&quot;: &quot;Run&quot;,
+    &quot;Python.get_inits.executor&quot;: &quot;Run&quot;,
+    &quot;Python.kneadings_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.message.executor&quot;: &quot;Run&quot;,
+    &quot;Python.plot_kneadings.executor&quot;: &quot;Run&quot;,
+    &quot;Python.plot_kneadings_1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.scriptUtils.executor&quot;: &quot;Run&quot;,
+    &quot;Python.serious_test.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Вячеслав/source/repos/kneadings&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\Вячеслав\source\repos\kneadings" />
@@ -109,41 +117,5 @@
       <updated>1730582697635</updated>
     </task>
     <servers />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/cpu_version.py</url>
-          <line>74</line>
-          <option name="timeStamp" value="8" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/cpu_version.py</url>
-          <line>76</line>
-          <option name="timeStamp" value="9" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/cpu_version.py</url>
-          <line>56</line>
-          <option name="timeStamp" value="10" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/cpu_version.py</url>
-          <line>69</line>
-          <option name="timeStamp" value="11" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/cpu_version.py</url>
-          <line>65</line>
-          <option name="timeStamp" value="12" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/tests/cpu_version.py</url>
-          <line>64</line>
-          <option name="timeStamp" value="13" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>
