@@ -1,7 +1,9 @@
 import numpy as np
 
-DIM = 3
+DIM = 4
+DIM_REDUCED = DIM - 1
 
+# нужен ли вообще этот файл если есть SystOsscills.py
 
 def link_function(phi, params):
     """Вспомогательная функция связи"""
