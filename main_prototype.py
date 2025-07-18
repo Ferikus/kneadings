@@ -1,7 +1,6 @@
 import numpy as np
-from numba import cuda, njit
+from numba import cuda
 from mapping.convert import decimal_to_binary
-# from system_analysis.get_inits import inits  # правильная ли это передача массива
 
 DIM = 3
 THREADS_PER_BLOCK = 512
@@ -77,7 +76,7 @@ def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end
             if first_derivative_curr[1] < 0 and y_curr[0] > 1:
                 if kneading_index >= kneadings_start:
                     # 1
-                    kneadings_weighted_sum += 1 / (2.0 ** (-kneading_index + kneadings_end + 1))  # что-то я забыл, зачем здесь идти наоборот
+                    kneadings_weighted_sum += 1 / (2.0 ** (-kneading_index + kneadings_end + 1))
                 kneading_index += 1
 
             elif first_derivative_curr[1] > 0 and y_curr[0] < -1:
@@ -195,16 +194,12 @@ if __name__ == "__main__":
     sweep_size = 300
     kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size)
 
-    # сделать присваивание границ a и b + передача массива с нач коорд через файл npz из base_analysis
-
     a_start = 0.0
     a_end = 2.2
     b_start = 0.0
     b_end = 1.5
 
-    # сюда передавать массив координат
     y_inits = [1e-8, 0.0, 0.0] * sweep_size * sweep_size
-    # добавить проверку на размерность == DIM ?
 
     sweep(
         kneadings_weighted_sum_set,
@@ -223,13 +218,13 @@ if __name__ == "__main__":
     )
 
     np.savez(
-        'kneadings_results.npz',
+        'kneadings.npz',
         a_start=a_start,
         a_end=a_end,
         b_start=b_start,
         b_end=b_end,
         sweep_size=sweep_size,
-        results=kneadings_weighted_sum_set
+        kneadings=kneadings_weighted_sum_set
     )
 
     print("Results:")

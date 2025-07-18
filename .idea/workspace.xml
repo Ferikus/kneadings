@@ -6,11 +6,17 @@
   <component name="ChangeListManager">
     <list default="true" id="580c4c10-eddb-4d1b-a0a9-9db1346a79eb" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eq_finder" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eq_finder/SystOsscills.py" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder/SystOsscills.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eq_finder/scriptUtils.py" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder/scriptUtils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eq_finder/systems_fun.py" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder/systems_fun.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kneadings_results.npz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main_prototype.py" beforeDir="false" afterPath="$PROJECT_DIR$/main_prototype.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mapping/convert.py" beforeDir="false" afterPath="$PROJECT_DIR$/mapping/convert.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mapping/mode_map.png" beforeDir="false" afterPath="$PROJECT_DIR$/mapping/mode_map.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/system_analysis/get_inits.py" beforeDir="false" afterPath="$PROJECT_DIR$/system_analysis/get_inits.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/system_analysis/system.py" beforeDir="false" afterPath="$PROJECT_DIR$/system_analysis/system.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/cpu_version.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/cpu_version.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,6 +59,7 @@
     &quot;Python.get_inits.executor&quot;: &quot;Run&quot;,
     &quot;Python.kneadings_test.executor&quot;: &quot;Run&quot;,
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main_prototype.executor&quot;: &quot;Run&quot;,
     &quot;Python.message.executor&quot;: &quot;Run&quot;,
     &quot;Python.plot_kneadings.executor&quot;: &quot;Run&quot;,
     &quot;Python.plot_kneadings_1.executor&quot;: &quot;Run&quot;,
@@ -109,5 +116,16 @@
       <updated>1730582697635</updated>
     </task>
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>

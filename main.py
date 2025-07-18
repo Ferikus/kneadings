@@ -6,7 +6,7 @@ DIM = 4
 DIM_REDUCED = DIM - 1
 THREADS_PER_BLOCK = 512
 
-INFINITY = 100000
+INFINITY = 10
 
 InfinityError = -0.2
 KneadingDoNotEndError = -0.1
@@ -328,13 +328,17 @@ if __name__ == "__main__":
     b_start = 0.0
     b_end = 1.5
 
-    # сюда передавать массив координат
-    y_inits = [1e-8, 0.0, 0.0] * sweep_size * sweep_size
+    inits_data = np.load(r'./inits.npz')
+
+    inits = inits_data['inits']
+    nones = inits_data['nones']
+
+    # y_inits = [1e-8, 0.0, 0.0] * sweep_size * sweep_size
     # добавить проверку на размерность == DIM ?
 
     sweep(
         kneadings_weighted_sum_set,
-        y_inits,
+        inits,
         a_start,
         a_end,
         sweep_size,
@@ -349,13 +353,13 @@ if __name__ == "__main__":
     )
 
     np.savez(
-        'kneadings_results.npz',
+        'kneadings.npz',
         a_start=a_start,
         a_end=a_end,
         b_start=b_start,
         b_end=b_end,
         sweep_size=sweep_size,
-        results=kneadings_weighted_sum_set
+        kneadings=kneadings_weighted_sum_set
     )
 
     print("Results:")

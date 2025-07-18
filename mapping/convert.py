@@ -35,3 +35,23 @@ def binary_to_decimal(binary_str):
         if bit == '1':
             decimal += 1.0 / (2 ** i)
     return decimal
+
+
+def decimal_to_quaternary(num):
+    """Converts decimal to quaternary"""
+    if num < 0:
+        return "Error"
+    if num >= 1:
+        raise ValueError("Number must be less than 1")
+
+    integer_part = int(num)
+    fractional_part = num - integer_part
+
+    binary_fractional = ""
+    while fractional_part > 0 and len(binary_fractional) < 10:
+        fractional_part *= 4
+        bit = int(fractional_part)
+        binary_fractional += str(bit)
+        fractional_part -= bit
+
+    return binary_fractional
