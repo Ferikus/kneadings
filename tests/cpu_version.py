@@ -1,17 +1,15 @@
 import numpy as np
-from numba import cuda, njit
 from mapping.convert import decimal_to_quaternary
-# from system_analysis.get_inits import inits  # правильная ли это передача массива
 
 DIM = 4
 DIM_REDUCED = DIM - 1
 THREADS_PER_BLOCK = 512
 
-INFINITY = 100000
+INFINITY = 10
 
-InfinityError = -0.2
 KneadingDoNotEndError = -0.1
-
+InfinityError = -0.2
+NoInitFound = -0.3
 
 def det4x4(m):
     det = 0.0
@@ -128,7 +126,7 @@ def full_rhs(params, phis):
 def reduced_rhs(params, psis):
     """Calculates the right-hand side of the reduced system"""
     phis = [0.] + psis
-    rhs_phis = full_rhs(phis, params)
+    rhs_phis = full_rhs(params, phis)
     rhs_psis = [0.] * 4
     for i in range(4):
         rhs_psis[i] = rhs_phis[i] - rhs_phis[0]
@@ -147,7 +145,7 @@ def stepper_rk4(params, y_curr, dt):
     """Makes RK-4 step and saves the value in y_curr"""
     k1 = reduced_rhs(params, y_curr)
 
-    y_temp = [y_curr[i] + k1[i] * dt / 2.0 for i in range(DIM_REDUCED)]  # ЗДЕСЬ ПОМЕНЯЛ РАЗМЕРНОСТЬ
+    y_temp = [y_curr[i] + k1[i] * dt / 2.0 for i in range(DIM_REDUCED)]
     k2 = reduced_rhs(params, y_temp)
 
     y_temp = [y_curr[i] + k2[i] * dt / 2.0 for i in range(DIM_REDUCED)]
@@ -165,6 +163,8 @@ def integrator_rk4(y_curr, a, b, dt, n, stride, kneadings_start, kneadings_end):
     # stride -- через сколько шагов начинаем считать нидинги
     # first_derivative_curr, prev -- значения производных системы на текущем шаге и на предыдущем
 
+    print(f'starting calculating with {y_curr} {a,b}')
+
     deriv_prev = 0
     deriv_curr = 0
     kneading_index = 0
@@ -181,13 +181,14 @@ def integrator_rk4(y_curr, a, b, dt, n, stride, kneadings_start, kneadings_end):
     for i in range(1, n):
 
         for j in range(stride):
-            stepper_rk4(params, y_curr, dt)
+            y_curr = stepper_rk4(params, y_curr, dt)
 
         bary_coords = bary_expansion(y_curr)  # получаем барицентрические координаты точки
         domain_num = get_domain_num(bary_coords)  # получаем номер её подтетраэдра
 
         for k in range(DIM_REDUCED):
             if y_curr[k] > INFINITY or y_curr[k] < -INFINITY:
+                print('infinity')
                 return InfinityError
 
         deriv_curr = avg_face_dist_deriv(params, y_curr)
@@ -202,13 +203,14 @@ def integrator_rk4(y_curr, a, b, dt, n, stride, kneadings_start, kneadings_end):
         deriv_prev = deriv_curr
 
         if kneading_index > kneadings_end:
+            print(kneadings_weighted_sum)
             return kneadings_weighted_sum
 
+    print('did not end')
     return KneadingDoNotEndError
 
 
 def sweep(
-    kneadings_weighted_sum_set,
     inits,
     nones,
     alphas,
@@ -224,37 +226,29 @@ def sweep(
     kneadings_end,
 ):
     """Calls CUDA kernel and gets kneadings set back from GPU"""
-    # a_step = (a_end - a_start) / (a_count - 1)
-    # b_step = (b_end - b_start) / (b_count - 1)
-
     results = []
 
     for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
-        # i = idx // a_count
-        # j = idx % a_count
-
         init = [0.] * DIM_REDUCED
 
         if idx not in nones:
-            # params[0] = a_start + i * a_step
-            # params[1] = b_start + j * b_step
-
             init[0] = inits[idx * DIM_REDUCED + 0]
             init[1] = inits[idx * DIM_REDUCED + 1]
             init[2] = inits[idx * DIM_REDUCED + 2]
 
             result = integrator_rk4(init, alphas[idx], betas[idx], dt, n, stride, kneadings_start, kneadings_end)
         else:
-            result = -0.1
+            print(f'no init found for {init} {alphas[idx], betas[idx]}')
+            result = NoInitFound
 
-        results.append(result)  # передача альфа-бета?
+        results.append(result)
 
     return results
 
 
 if __name__ == "__main__":
     dt = 0.01
-    n = 30000
+    n = 50000
     stride = 1
     max_kneadings = 7
 
@@ -269,10 +263,7 @@ if __name__ == "__main__":
     left_n = inits_data['left_n']
     right_n = inits_data['right_n']
 
-    kneadings_weighted_sum_set = np.zeros((left_n + right_n + 1) * (up_n + down_n + 1))
-
-    sweep(
-        kneadings_weighted_sum_set,
+    kneadings_weighted_sum_set = sweep(
         inits,
         nones,
         alphas,
@@ -288,17 +279,16 @@ if __name__ == "__main__":
         max_kneadings
     )
 
+    np.savez(
+        'kneadings_cpu_version.npz',
+        kneadings=kneadings_weighted_sum_set
+    )
+
     print("Results:")
-    # for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
-    #     i = idx // (left_n + right_n + 1)
-    #     j = idx % (up_n + down_n + 1)
-    for j in range(up_n + down_n + 1):
-        for i in range(left_n + right_n + 1):
-            idx = i + j * (left_n + right_n + 1)
+    for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
+        kneading_weighted_sum = kneadings_weighted_sum_set[idx]
+        kneading_symbolic = decimal_to_quaternary(kneading_weighted_sum)
 
-            kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-            kneading_symbolic = decimal_to_quaternary(kneading_weighted_sum)
-
-            print(f"a: {alphas[idx]:.6f}, "
-                  f"b: {betas[idx]:.6f} => "
-                  f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
+        print(f"a: {alphas[idx]:.6f}, "
+              f"b: {betas[idx]:.6f} => "
+              f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")

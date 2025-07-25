@@ -133,7 +133,6 @@ def sweep_threads(
 
 
 def sweep(
-    kneadings_weighted_sum_set,
     y_inits,
     a_start,
     a_end,
@@ -149,6 +148,7 @@ def sweep(
 ):
     """Calls CUDA kernel and gets kneadings set back from GPU"""
     total_parameter_space_size = a_count * b_count
+    kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size)
     kneadings_weighted_sum_set_gpu = cuda.device_array(total_parameter_space_size)
 
     y_inits_gpu = cuda.device_array(len(y_inits))
@@ -191,8 +191,7 @@ if __name__ == "__main__":
     n = 30000
     stride = 1
     max_kneadings = 7
-    sweep_size = 300
-    kneadings_weighted_sum_set = np.zeros(sweep_size * sweep_size)
+    sweep_size = 10
 
     a_start = 0.0
     a_end = 2.2
@@ -201,8 +200,7 @@ if __name__ == "__main__":
 
     y_inits = [1e-8, 0.0, 0.0] * sweep_size * sweep_size
 
-    sweep(
-        kneadings_weighted_sum_set,
+    kneadings_weighted_sum_set = sweep(
         y_inits,
         a_start,
         a_end,
@@ -218,7 +216,7 @@ if __name__ == "__main__":
     )
 
     np.savez(
-        'kneadings.npz',
+        'kneadings_main_prototype.npz',
         a_start=a_start,
         a_end=a_end,
         b_start=b_start,
