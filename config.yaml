@@ -1,0 +1,56 @@
+# a config for bi-parametric sweep
+# in parameters s and alpha
+# "defaultSystem" describes default parameter values
+# for studied system; system is always created with
+# these parameters first
+defaultSystem:
+  w: 0
+  a: -2.67
+  b: -1.61268422884276
+  r: 1
+# grid describes parameter sweeps
+# it must have either "first" AND "second" keys (biparametric),
+# or "first" only (single parameter)
+# each of these dictionaries must have following keys:
+# "min": minimal parameter value
+# "max":  maximal parameter value
+# "steps": how many nodes between [min, max] including endpoints
+# "caption": LaTeX version of parameter name, used for plotting
+grid:
+  first:
+    left_n: 1
+    right_n: 1
+    left_step: 0.1
+    right_step: 0.1
+    name: a
+    caption: \alpha
+  second:
+    down_n: 2
+    up_n: 1
+    down_step: 0.1
+    up_step: 0.1
+    name: b
+    caption: \beta
+  start_eq: [0.0, 2.2407036591877545, 4.560530062709164]
+# name of the task to perform
+task: KneadingsFBPO
+# next entry must have the same name as value for "task" key
+# stores parameters for performing task function, depens on what
+# task function needs
+KneadingsFBPO:
+# information for saving files
+# "directory": where save it
+# "mask": what is the prefix
+# "useTimeStamp": "folder" or "file",
+# - "ignore": ignores timestamp and uses "directory" and "mask" as is
+# - "file": appends timestamp after "mask" for each saved file
+# - "folder": creates folder with timestamp name and saves everything there
+# "imageExtension": used specifically for images
+output:
+  directory: "./output/"
+  mask: kneadings_fbpo
+  useTimestamp: ignore
+  imageExtension: png
+# some functions might use additional keyword-arguments
+# we can pass them through "misc" dictionary
+misc:

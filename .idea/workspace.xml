@@ -4,20 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="580c4c10-eddb-4d1b-a0a9-9db1346a79eb" name="Changes" comment="">
+    <list default="true" id="580c4c10-eddb-4d1b-a0a9-9db1346a79eb" name="Changes" comment="eq_finder modifications">
+      <change afterPath="$PROJECT_DIR$/computation_template/gpu_compute.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitmodules" beforeDir="false" afterPath="$PROJECT_DIR$/.gitmodules" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/computation_template/workers.py" beforeDir="false" afterPath="$PROJECT_DIR$/computation_template/workers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/eq_finder" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eq_finder/SystOsscills.py" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder/SystOsscills.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eq_finder/scriptUtils.py" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder/scriptUtils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eq_finder/systems_fun.py" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder/systems_fun.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kneadings_results.npz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kneadings_main.npz" beforeDir="false" afterPath="$PROJECT_DIR$/kneadings_main.npz" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main_prototype.py" beforeDir="false" afterPath="$PROJECT_DIR$/main_prototype.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mapping/mode_map.png" beforeDir="false" afterPath="$PROJECT_DIR$/mapping/mode_map.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mapping/plot_kneadings.py" beforeDir="false" afterPath="$PROJECT_DIR$/mapping/plot_kneadings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/system_analysis/get_inits.py" beforeDir="false" afterPath="$PROJECT_DIR$/system_analysis/get_inits.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/system_analysis/inits.npz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/cpu_version.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/cpu_version.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/system_analysis/inits.npz" beforeDir="false" afterPath="$PROJECT_DIR$/system_analysis/inits.npz" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,7 +29,7 @@
     </option>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/computation_template" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
@@ -43,45 +40,69 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python tests.Python tests in cuda_test.py.executor": "Run",
-    "Python tests.Python tests in rk4_test.py.executor": "Run",
-    "Python.1.executor": "Run",
-    "Python.111.executor": "Run",
-    "Python.2 — копия.executor": "Run",
-    "Python.afdd_test.executor": "Run",
-    "Python.base_analysis.executor": "Run",
-    "Python.bcsd_analyzer.executor": "Run",
-    "Python.brats_analyzer.executor": "Run",
-    "Python.color_text_subs.executor": "Run",
-    "Python.cpu_version.executor": "Run",
-    "Python.cuda_test.executor": "Run",
-    "Python.data_gen_new.executor": "Run",
-    "Python.get_domain_test.executor": "Run",
-    "Python.get_inits.executor": "Run",
-    "Python.integrator_test.executor": "Run",
-    "Python.kneadings_test.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.main_prototype.executor": "Run",
-    "Python.message.executor": "Run",
-    "Python.plot_kneadings.executor": "Run",
-    "Python.plot_kneadings_1.executor": "Run",
-    "Python.scriptUtils.executor": "Run",
-    "Python.serious_test.executor": "Run",
-    "Python.systems_fun.executor": "Debug",
-    "Python.temp.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/Вячеслав/source/repos/kneadings"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python tests.Python tests in cuda_test.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in rk4_test.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.111.executor&quot;: &quot;Run&quot;,
+    &quot;Python.2 — копия.executor&quot;: &quot;Run&quot;,
+    &quot;Python.afdd_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.base_analysis.executor&quot;: &quot;Run&quot;,
+    &quot;Python.bcsd_analyzer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.brats_analyzer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.color_text_subs.executor&quot;: &quot;Run&quot;,
+    &quot;Python.cpu_version.executor&quot;: &quot;Run&quot;,
+    &quot;Python.cuda_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.data_gen_new.executor&quot;: &quot;Run&quot;,
+    &quot;Python.get_domain_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.get_inits.executor&quot;: &quot;Run&quot;,
+    &quot;Python.gpu_compute.executor&quot;: &quot;Run&quot;,
+    &quot;Python.integrator_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.kneadings_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main_prototype.executor&quot;: &quot;Run&quot;,
+    &quot;Python.message.executor&quot;: &quot;Run&quot;,
+    &quot;Python.plot_kneadings.executor&quot;: &quot;Run&quot;,
+    &quot;Python.plot_kneadings_1.executor&quot;: &quot;Run&quot;,
+    &quot;Python.scriptUtils.executor&quot;: &quot;Run&quot;,
+    &quot;Python.serious_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.systems_fun.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.temp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.workers.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Вячеслав/source/repos/kneadings&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\Вячеслав\source\repos\kneadings" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.gpu_compute">
+    <configuration name="gpu_compute" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="kneadings" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/computation_template/gpu_compute.py" />
+      <option name="PARAMETERS" value="config.yaml" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="kneadings" />
       <option name="ENV_FILES" value="" />
@@ -104,6 +125,10 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Python.gpu_compute" />
+      <item itemvalue="Python.main" />
+    </list>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -121,11 +146,50 @@
       <option name="presentableId" value="Default" />
       <updated>1730582697635</updated>
     </task>
+    <task id="LOCAL-00001" summary="eq_finder modifications">
+      <option name="closed" value="true" />
+      <created>1753543899125</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1753543899125</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
+    <option name="OPEN_GENERIC_TABS">
+      <map>
+        <entry key="1420e17c-8f38-4cb9-8f4e-2af1f2588950" value="TOOL_WINDOW" />
+      </map>
+    </option>
     <option name="TAB_STATES">
       <map>
+        <entry key="1420e17c-8f38-4cb9-8f4e-2af1f2588950">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="roots">
+                    <value>
+                      <list>
+                        <option value="$PROJECT_DIR$/eq_finder" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+            </State>
+          </value>
+        </entry>
         <entry key="MAIN">
           <value>
             <State />
@@ -133,5 +197,9 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="eq_finder modifications" />
+    <option name="LAST_COMMIT_MESSAGE" value="eq_finder modifications" />
   </component>
 </project>

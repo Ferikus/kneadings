@@ -88,7 +88,7 @@ def continue_equilibrium(create_sys, rhs, jac, start_grid_params, other_params, 
     return grid
 
 
-def get_saddle_foci_grid(grid):
+def get_saddle_foci_grid(grid, up_n, down_n, left_n, right_n):
     """Составляет сетку седло-фокусов по сетке состояний равновесия"""
     print("\nFilling up saddle-foci grid...")
     sf_grid = [[None for _ in range(len(grid[0]))] for _ in range(len(grid))]
@@ -105,7 +105,7 @@ def get_saddle_foci_grid(grid):
     return sf_grid
 
 
-def find_inits_for_equilibrium_grid(sf_grid):
+def find_inits_for_equilibrium_grid(sf_grid, up_n, down_n, left_n, right_n,):
     """Находит начальные условия для сетки седло-фокусов"""
     # допустим, что grid на самом деле это просто двумерный массив с eq_objs
     # тогда мы можем записывать inits сразу в одномерный массив
@@ -188,15 +188,15 @@ if __name__ == '__main__':
             print(f"\nStarting with saddle-focus {start_eq.round(4)} with parameters ({w:.3f}, {a:.3f}, {b:.3f}, {r:.3f})")
             break
 
-    up_n = 20
-    down_n = 20
-    left_n = 20
-    right_n = 20
+    up_n = 1
+    down_n = 2
+    left_n = 1
+    right_n = 1
 
-    up_step = 0.01
-    down_step = 0.01
-    left_step = 0.01
-    right_step = 0.01
+    up_step = 0.1
+    down_step = 0.1
+    left_step = 0.1
+    right_step = 0.1
 
     def create_fbpo_system(grid_params, other_params):
         a, b = grid_params
@@ -214,8 +214,8 @@ if __name__ == '__main__':
                                        (a, b), (w, r),
                                        start_eq, up_n, down_n, left_n, right_n,
                                        up_step, down_step, left_step, right_step)
-        sf_grid = get_saddle_foci_grid(eq_grid)
-        inits, nones = find_inits_for_equilibrium_grid(sf_grid)
+        sf_grid = get_saddle_foci_grid(eq_grid, up_n, down_n, left_n, right_n)
+        inits, nones = find_inits_for_equilibrium_grid(sf_grid, up_n, down_n, left_n, right_n,)
         alphas, betas = generate_parameters((a, b), up_n, down_n, left_n, right_n,
                                             up_step, down_step, left_step, right_step)
     else:

@@ -1,3 +1,6 @@
 [submodule "eq_finder"]
 	path = eq_finder
 	url = https://github.com/Evgenij-Gr/eq-finder.git
+[submodule "computation_template"]
+	path = computation_template
+	url = https://github.com/Evgenij-Gr/computation-template

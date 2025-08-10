@@ -293,10 +293,10 @@ def sweep(
     kneadings_weighted_sum_set = np.zeros(total_parameter_space_size)
     kneadings_weighted_sum_set_gpu = cuda.device_array(total_parameter_space_size)
 
-    inits_gpu = cuda.device_array(len(inits))
-    for i in range(len(inits)):
-        inits_gpu[i] = inits[i]
-    # это можно в одну строчку записать по идее
+    inits_gpu = cuda.to_device(inits)
+    nones_gpu = cuda.to_device(nones)
+    alphas_gpu = cuda.to_device(alphas)
+    betas_gpu = cuda.to_device(betas)
 
     grid_x_dimension = (total_parameter_space_size + THREADS_PER_BLOCK - 1) // THREADS_PER_BLOCK
     dim_grid = grid_x_dimension
@@ -311,9 +311,9 @@ def sweep(
     sweep_threads[dim_grid, dim_block](  # blocks, threads
         kneadings_weighted_sum_set_gpu,
         inits_gpu,
-        nones,
-        alphas,
-        betas,
+        nones_gpu,
+        alphas_gpu,
+        betas_gpu,
         up_n,
         down_n,
         left_n,
