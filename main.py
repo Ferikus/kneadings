@@ -1,6 +1,7 @@
 import numpy as np
 from numba import cuda
 from mapping.convert import decimal_to_quaternary
+from eq_finder.SystOsscills import PARAM_TO_INDEX
 
 DIM = 4
 DIM_REDUCED = DIM - 1
@@ -184,21 +185,15 @@ def stepper_rk4(params, y_curr, dt):
 
 
 @cuda.jit
-def integrator_rk4(y_curr, a, b, dt, n, stride, kneadings_start, kneadings_end):
+def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end):
     """Calculates kneadings during integration"""
     bary_coords = cuda.local.array(DIM, dtype=np.float64)
-    params = cuda.local.array(4, dtype=np.float64)
     deriv_prev = cuda.local.array(1, dtype=np.float64)
     deriv_curr = cuda.local.array(1, dtype=np.float64)
     domain_num = cuda.local.array(1, dtype=np.float64)
 
     kneading_index = 0
     kneadings_weighted_sum = 0
-
-    params[0] = 0  # w  КОНФИГ?
-    params[1] = a  # a
-    params[2] = b  # b
-    params[3] = 1  # r  КОНФИГ?
 
     avg_face_dist_deriv(params, y_curr, deriv_prev)
 
@@ -233,11 +228,14 @@ def integrator_rk4(y_curr, a, b, dt, n, stride, kneadings_start, kneadings_end):
 
 @cuda.jit
 def sweep_threads(
-    kneadings_weighted_sum_set_gpu,
-    inits_gpu,
+    kneadings_weighted_sum_set,
+    inits,
     nones,
-    alphas,
-    betas,
+    params_x,
+    params_y,
+    def_params,
+    param_x_idx,
+    param_y_idx,
     up_n,
     down_n,
     left_n,
@@ -256,28 +254,32 @@ def sweep_threads(
         for i in range(len(nones)):
             if idx == nones[i]:
                 is_in_nones = True
-                kneadings_weighted_sum_set_gpu[idx] = -0.3
+                kneadings_weighted_sum_set[idx] = -0.3
                 break
         if is_in_nones == False:
             init = cuda.local.array(DIM_REDUCED, dtype=np.float64)
-            init[0] = inits_gpu[idx * DIM_REDUCED + 0]
-            init[1] = inits_gpu[idx * DIM_REDUCED + 1]
-            init[2] = inits_gpu[idx * DIM_REDUCED + 2]
-            kneadings_weighted_sum_set_gpu[idx] = integrator_rk4(init, alphas[idx], betas[idx], dt, n, stride,
-                                                                 kneadings_start, kneadings_end)
-        # init = cuda.local.array(DIM_REDUCED, dtype=np.float64)
-        # init[0] = inits_gpu[idx * DIM_REDUCED + 0]
-        # init[1] = inits_gpu[idx * DIM_REDUCED + 1]
-        # init[2] = inits_gpu[idx * DIM_REDUCED + 2]
-        # kneadings_weighted_sum_set_gpu[idx] = integrator_rk4(init, alphas[idx], betas[idx], dt, n, stride,
-        #                                                      kneadings_start, kneadings_end)
+            params = cuda.local.array(4, dtype=np.float64)
+
+            init[0] = inits[idx * DIM_REDUCED + 0]
+            init[1] = inits[idx * DIM_REDUCED + 1]
+            init[2] = inits[idx * DIM_REDUCED + 2]
+
+            for i in range(4):
+                params[i] = def_params[i]
+            params[param_x_idx] = params_x[idx]
+            params[param_y_idx] = params_y[idx]
+            kneadings_weighted_sum_set[idx] = integrator_rk4(init, params, dt, n, stride, kneadings_start, kneadings_end)
 
 
 def sweep(
     inits,
     nones,
-    alphas,
-    betas,
+    params_x,
+    params_y,
+    def_params,
+    param_to_index,
+    param_x_str,
+    param_y_str,
     up_n,
     down_n,
     left_n,
@@ -295,8 +297,12 @@ def sweep(
 
     inits_gpu = cuda.to_device(inits)
     nones_gpu = cuda.to_device(nones)
-    alphas_gpu = cuda.to_device(alphas)
-    betas_gpu = cuda.to_device(betas)
+    def_params_gpu = cuda.to_device(def_params)
+    params_x_gpu = cuda.to_device(params_x)
+    params_y_gpu = cuda.to_device(params_y)
+
+    param_x_idx = param_to_index[param_x_str]
+    param_y_idx = param_to_index[param_y_str]
 
     grid_x_dimension = (total_parameter_space_size + THREADS_PER_BLOCK - 1) // THREADS_PER_BLOCK
     dim_grid = grid_x_dimension
@@ -312,8 +318,11 @@ def sweep(
         kneadings_weighted_sum_set_gpu,
         inits_gpu,
         nones_gpu,
-        alphas_gpu,
-        betas_gpu,
+        params_x_gpu,
+        params_y_gpu,
+        def_params_gpu,
+        param_x_idx,
+        param_y_idx,
         up_n,
         down_n,
         left_n,
@@ -340,18 +349,29 @@ if __name__ == "__main__":
 
     inits = inits_data['inits']
     nones = inits_data['nones']
-    alphas = inits_data['alphas']
-    betas = inits_data['betas']
+    params_x = inits_data['alphas']
+    params_y = inits_data['betas']
     up_n = int(inits_data['up_n'])
     down_n = int(inits_data['down_n'])
     left_n = int(inits_data['left_n'])
     right_n = int(inits_data['right_n'])
 
+    # default parameter values
+    w = 0.0
+    a = -2.67
+    b = -1.61268422884276
+    r = 1.0
+    def_params = [w, a, b, r]
+
     kneadings_weighted_sum_set = sweep(
         inits,
         nones,
-        alphas,
-        betas,
+        params_x,
+        params_y,
+        def_params,
+        PARAM_TO_INDEX,
+        'a',
+        'b',
         up_n,
         down_n,
         left_n,
@@ -373,6 +393,6 @@ if __name__ == "__main__":
         kneading_weighted_sum = kneadings_weighted_sum_set[idx]
         kneading_symbolic = decimal_to_quaternary(kneading_weighted_sum)
 
-        print(f"a: {alphas[idx]:.6f}, "
-              f"b: {betas[idx]:.6f} => "
+        print(f"a: {params_x[idx]:.6f}, "
+              f"b: {params_y[idx]:.6f} => "
               f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")

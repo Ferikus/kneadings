@@ -31,13 +31,17 @@ grid:
     up_step: 0.1
     name: b
     caption: \beta
-  start_eq: [0.0, 2.2407036591877545, 4.560530062709164]
 # name of the task to perform
 task: KneadingsFBPO
 # next entry must have the same name as value for "task" key
-# stores parameters for performing task function, depens on what
+# stores parameters for performing task function, depends on what
 # task function needs
 KneadingsFBPO:
+  dt: 0.01
+  n: 50000
+  stride: 1
+  kneadings_start: 0
+  kneadings_end: 7
 # information for saving files
 # "directory": where save it
 # "mask": what is the prefix
@@ -49,8 +53,11 @@ KneadingsFBPO:
 output:
   directory: "./output/"
   mask: kneadings_fbpo
-  useTimestamp: ignore
+  useTimestamp: file
   imageExtension: png
 # some functions might use additional keyword-arguments
 # we can pass them through "misc" dictionary
 misc:
+  start_eq: [0.0, 2.2407036591877545, 4.560530062709164]
+  dim: 4
+  dim_reduced: 3

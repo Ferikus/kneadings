@@ -5,13 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="580c4c10-eddb-4d1b-a0a9-9db1346a79eb" name="Changes" comment="eq_finder modifications">
-      <change afterPath="$PROJECT_DIR$/computation_template/gpu_compute.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitmodules" beforeDir="false" afterPath="$PROJECT_DIR$/.gitmodules" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/computation_template/workers.py" beforeDir="false" afterPath="$PROJECT_DIR$/computation_template/workers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eq_finder" beforeDir="false" afterPath="$PROJECT_DIR$/eq_finder" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kneadings_main.npz" beforeDir="false" afterPath="$PROJECT_DIR$/kneadings_main.npz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/system_analysis/get_inits.py" beforeDir="false" afterPath="$PROJECT_DIR$/system_analysis/get_inits.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/system_analysis/inits.npz" beforeDir="false" afterPath="$PROJECT_DIR$/system_analysis/inits.npz" afterDir="false" />
@@ -29,7 +24,7 @@
     </option>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/computation_template" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
@@ -69,6 +64,7 @@
     &quot;Python.serious_test.executor&quot;: &quot;Run&quot;,
     &quot;Python.systems_fun.executor&quot;: &quot;Debug&quot;,
     &quot;Python.temp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.threading.executor&quot;: &quot;Debug&quot;,
     &quot;Python.workers.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
