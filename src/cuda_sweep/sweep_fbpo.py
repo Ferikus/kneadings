@@ -3,9 +3,9 @@ from numba import cuda
 from src.mapping.convert import decimal_to_quaternary
 
 PARAM_TO_INDEX = {
-    'a': 0,
-    'b': 1,
-    'w': 2,
+    'w': 0,
+    'a': 1,
+    'b': 2,
     'r': 3
 }
 

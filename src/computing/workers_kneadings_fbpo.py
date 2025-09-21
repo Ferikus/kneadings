@@ -1,4 +1,5 @@
 import numpy as np
+import pprint
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
@@ -85,6 +86,8 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
     params_x = initResult['params_x']
     params_y = initResult['params_y']
 
+    kneadings_records = pprint.pformat(config) + "\n\n"
+
     kneadings_weighted_sum_set = sweep(
         inits,
         nones,
@@ -113,8 +116,11 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
         print(f"a: {params_x[idx]:.6f}, "
               f"b: {params_y[idx]:.6f} => "
               f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
+        kneadings_records = (kneadings_records + f"a: {params_x[idx]:.6f}, "
+                                                 f"b: {params_y[idx]:.6f} => "
+                                                 f"{kneading_symbolic} (Raw: {kneading_weighted_sum})\n")
 
-    return kneadings_weighted_sum_set
+    return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set, 'kneadings_records': kneadings_records}
 
 
 @register(registry, 'post', 'kneadings_fbpo')
@@ -138,7 +144,8 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     right_n = grid_dict['first']['right_n']
     right_step = grid_dict['first']['right_step']
 
-    kneadings_weighted_sum_set = workerResult
+    kneadings_weighted_sum_set = workerResult['kneadings_weighted_sum_set']
+    kneadings_records = workerResult['kneadings_records']
 
     param_x_caption = f"{grid_dict['first']['caption']}"
     param_x_count = left_n + right_n + 1
@@ -155,7 +162,12 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     plt.title(r'$\omega = 0$, $r = 1$', fontsize=font_size)
 
     outFileExtension = config['output']['imageExtension']
-    outname = makeFinalOutname(config, initResult, outFileExtension, startTime)
-    plt.savefig(outname, dpi=300, bbox_inches='tight')
+    plot_outname = makeFinalOutname(config, initResult, outFileExtension, startTime)
+    plt.savefig(plot_outname, dpi=300, bbox_inches='tight')
     plt.close()
     print("Mode map successfully saved")
+
+    txt_outname = makeFinalOutname(config, initResult, "txt", startTime)
+    with open(f'{txt_outname}', 'w') as txt_output:
+        txt_output.write(kneadings_records)
+    print("Kneadings records successfully saved")

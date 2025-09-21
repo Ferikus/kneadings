@@ -5,13 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="580c4c10-eddb-4d1b-a0a9-9db1346a79eb" name="Changes" comment="eq_finder modifications">
+      <change afterPath="$PROJECT_DIR$/config_article.yaml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/system_analysis/find_equilibrium.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/output/kneadings_fbpo_2025-09-21_14-16-12.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/computing/workers_kneadings_fbpo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/computing/workers_kneadings_fbpo.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapping/mode_map_1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapping/plot_kneadings.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/plot_kneadings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/cuda_sweep/sweep_fbpo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda_sweep/sweep_fbpo.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,6 +52,7 @@
     "Python.cpu_version.executor": "Run",
     "Python.cuda_test.executor": "Run",
     "Python.data_gen_new.executor": "Run",
+    "Python.find_equilibrium.executor": "Run",
     "Python.get_domain_test.executor": "Run",
     "Python.get_inits.executor": "Run",
     "Python.gpu_compute.executor": "Run",
