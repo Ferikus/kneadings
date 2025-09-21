@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-import cv2
 
 from normalization import *
 from convert import decimal_to_binary, binary_to_decimal
@@ -15,7 +14,7 @@ from convert import decimal_to_binary, binary_to_decimal
 # b_start = data['b_start']
 # b_end = data['b_end']
 
-data_kneadings = np.load(r'../kneadings_main.npz')
+data_kneadings = np.load(r'../cuda_sweep/sweep_fbpo.npz')
 data_inits = np.load(r'../system_analysis/inits.npz')
 
 kneadings_weighted_sum_set = data_kneadings['kneadings']

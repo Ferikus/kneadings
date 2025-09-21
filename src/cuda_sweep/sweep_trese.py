@@ -1,6 +1,6 @@
 import numpy as np
 from numba import cuda
-from mapping.convert import decimal_to_binary
+from src.mapping.convert import decimal_to_binary
 
 DIM = 3
 THREADS_PER_BLOCK = 512
@@ -216,7 +216,7 @@ if __name__ == "__main__":
     )
 
     np.savez(
-        'kneadings_main_prototype.npz',
+        'sweep_trese.npz',
         a_start=a_start,
         a_end=a_end,
         b_start=b_start,

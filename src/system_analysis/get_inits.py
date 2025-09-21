@@ -1,7 +1,9 @@
 import numpy as np
-import eq_finder.systems_fun as sf
-import eq_finder.SystOsscills as so
+import lib.eq_finder.systems_fun as sf
+import lib.eq_finder.SystOsscills as so
 import scipy
+
+from src.cuda_sweep.sweep_fbpo import PARAM_TO_INDEX
 
 
 def find_equilibrium_by_guess(rhs, jac, initial_guess=np.zeros(3), tol=1e-10):
@@ -204,7 +206,7 @@ if __name__ == '__main__':
 
     if start_eq is not None:
         eq_grid = continue_equilibrium(reduced_rhs_wrapper, reduced_jac_wrapper, get_params, set_params,
-                                       so.PARAM_TO_INDEX, 'a', 'b',
+                                       PARAM_TO_INDEX, 'a', 'b',
                                        start_eq, up_n, down_n, left_n, right_n,
                                        up_step, down_step, left_step, right_step)
         sf_grid = get_saddle_foci_grid(eq_grid, up_n, down_n, left_n, right_n)

@@ -22,6 +22,9 @@ grid:
     right_n: 1
     left_step: 0.1
     right_step: 0.1
+    min: 0
+    max: 0
+    steps: 0
     name: a
     caption: \alpha
   second:
@@ -29,14 +32,17 @@ grid:
     up_n: 1
     down_step: 0.1
     up_step: 0.1
+    min: 0
+    max: 0
+    steps: 0
     name: b
     caption: \beta
 # name of the task to perform
-task: KneadingsFBPO
+task: kneadings_fbpo
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
-KneadingsFBPO:
+kneadings_fbpo:
   dt: 0.01
   n: 50000
   stride: 1
@@ -58,6 +64,10 @@ output:
 # some functions might use additional keyword-arguments
 # we can pass them through "misc" dictionary
 misc:
+  param_to_index:
+    a: 0
+    b: 1
+    w: 2
+    r: 3
   start_eq: [0.0, 2.2407036591877545, 4.560530062709164]
-  dim: 4
-  dim_reduced: 3
+  threads_per_block: 512

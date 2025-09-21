@@ -2,7 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/computation_template" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/eq_finder" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/computation_template" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/eq_finder" vcs="Git" />
   </component>
 </project>

@@ -1,5 +1,5 @@
 import numpy as np
-from mapping.convert import decimal_to_quaternary
+from src.mapping.convert import decimal_to_quaternary
 
 DIM = 4
 DIM_REDUCED = DIM - 1
@@ -252,7 +252,7 @@ if __name__ == "__main__":
     stride = 1
     max_kneadings = 7
 
-    inits_data = np.load(r'../system_analysis/inits.npz')
+    inits_data = np.load(r'../src/system_analysis/inits.npz')
 
     inits = inits_data['inits']
     nones = inits_data['nones']

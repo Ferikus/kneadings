@@ -5,11 +5,42 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="580c4c10-eddb-4d1b-a0a9-9db1346a79eb" name="Changes" comment="eq_finder modifications">
+      <change afterPath="$PROJECT_DIR$/lib/computation_template" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/eq_finder" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/computing/engines_kneadings_fbpo.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/computing/workers_kneadings_fbpo.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/cuda_sweep/sweep_fbpo.npz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/cuda_sweep/sweep_fbpo.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/system_analysis/inits.npz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitmodules" beforeDir="false" afterPath="$PROJECT_DIR$/.gitmodules" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/kneadings.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kneadings.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kneadings_main.npz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kneadings_main_prototype.npz" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda_sweep/sweep_trese.npz" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/system_analysis/get_inits.py" beforeDir="false" afterPath="$PROJECT_DIR$/system_analysis/get_inits.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/system_analysis/inits.npz" beforeDir="false" afterPath="$PROJECT_DIR$/system_analysis/inits.npz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main_prototype.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda_sweep/sweep_trese.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mapping/convert.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/convert.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mapping/mode_map.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/mode_map.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mapping/mode_map_1.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/mode_map_1.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mapping/normalization.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/normalization.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mapping/plot_kneadings.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/plot_kneadings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plots/experiments.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/plots/kneadings_test.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/plots/trajectory_plot.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/plots/trajectory_xy_plot.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/plots/trajectory_xz_plot.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/plots/trajectory_yz_plot.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/system_analysis/get_inits.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/system_analysis/get_inits.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/system_analysis/inits.npz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/system_analysis/system.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/cpu_version.py" beforeDir="false" afterPath="$PROJECT_DIR$/test/cpu_version.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/cpu_version_prototype.py" beforeDir="false" afterPath="$PROJECT_DIR$/test/cpu_version_prototype.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/cuda_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test/cuda_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/rk4_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test/rk4_test.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,6 +56,7 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
@@ -35,70 +67,57 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python tests.Python tests in cuda_test.py.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.Python tests in rk4_test.py.executor&quot;: &quot;Run&quot;,
-    &quot;Python.1.executor&quot;: &quot;Run&quot;,
-    &quot;Python.111.executor&quot;: &quot;Run&quot;,
-    &quot;Python.2 — копия.executor&quot;: &quot;Run&quot;,
-    &quot;Python.afdd_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.base_analysis.executor&quot;: &quot;Run&quot;,
-    &quot;Python.bcsd_analyzer.executor&quot;: &quot;Run&quot;,
-    &quot;Python.brats_analyzer.executor&quot;: &quot;Run&quot;,
-    &quot;Python.color_text_subs.executor&quot;: &quot;Run&quot;,
-    &quot;Python.cpu_version.executor&quot;: &quot;Run&quot;,
-    &quot;Python.cuda_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.data_gen_new.executor&quot;: &quot;Run&quot;,
-    &quot;Python.get_domain_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.get_inits.executor&quot;: &quot;Run&quot;,
-    &quot;Python.gpu_compute.executor&quot;: &quot;Run&quot;,
-    &quot;Python.integrator_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.kneadings_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main_prototype.executor&quot;: &quot;Run&quot;,
-    &quot;Python.message.executor&quot;: &quot;Run&quot;,
-    &quot;Python.plot_kneadings.executor&quot;: &quot;Run&quot;,
-    &quot;Python.plot_kneadings_1.executor&quot;: &quot;Run&quot;,
-    &quot;Python.scriptUtils.executor&quot;: &quot;Run&quot;,
-    &quot;Python.serious_test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.systems_fun.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.temp.executor&quot;: &quot;Run&quot;,
-    &quot;Python.threading.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.workers.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Вячеслав/source/repos/kneadings&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python tests.Python tests in cuda_test.py.executor": "Run",
+    "Python tests.Python tests in rk4_test.py.executor": "Run",
+    "Python.1.executor": "Run",
+    "Python.111.executor": "Run",
+    "Python.2 — копия.executor": "Run",
+    "Python.afdd_test.executor": "Run",
+    "Python.base_analysis.executor": "Run",
+    "Python.bcsd_analyzer.executor": "Run",
+    "Python.brats_analyzer.executor": "Run",
+    "Python.color_text_subs.executor": "Run",
+    "Python.compute.executor": "Run",
+    "Python.cpu_version.executor": "Run",
+    "Python.cuda_test.executor": "Run",
+    "Python.data_gen_new.executor": "Run",
+    "Python.get_domain_test.executor": "Run",
+    "Python.get_inits.executor": "Run",
+    "Python.gpu_compute.executor": "Run",
+    "Python.integrator_test.executor": "Run",
+    "Python.kneadings_test.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.main_prototype.executor": "Run",
+    "Python.message.executor": "Run",
+    "Python.plot_kneadings.executor": "Run",
+    "Python.plot_kneadings_1.executor": "Run",
+    "Python.scriptUtils.executor": "Run",
+    "Python.serious_test.executor": "Run",
+    "Python.sweep_fbpo.executor": "Run",
+    "Python.systems_fun.executor": "Run",
+    "Python.temp.executor": "Run",
+    "Python.threading.executor": "Debug",
+    "Python.workers.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "C:/Users/Вячеслав/source/repos/kneadings",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\Вячеслав\source\repos\kneadings" />
     </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Вячеслав\source\repos\kneadings\lib" />
+      <recent name="C:\Users\Вячеслав\source\repos\kneadings\src\computing" />
+      <recent name="C:\Users\Вячеслав\source\repos\kneadings\src" />
+      <recent name="C:\Users\Вячеслав\source\repos\kneadings\cuda_sweep" />
+    </key>
   </component>
-  <component name="RunManager" selected="Python.gpu_compute">
-    <configuration name="gpu_compute" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
-      <module name="kneadings" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/computation_template/gpu_compute.py" />
-      <option name="PARAMETERS" value="config.yaml" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="kneadings" />
       <option name="ENV_FILES" value="" />
@@ -113,7 +132,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
-      <option name="PARAMETERS" value="" />
+      <option name="PARAMETERS" value="config.yaml" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -121,10 +140,33 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <list>
-      <item itemvalue="Python.gpu_compute" />
-      <item itemvalue="Python.main" />
-    </list>
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="kneadings" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="config.yaml" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.main" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
