@@ -71,3 +71,5 @@ misc:
     r: 3
   start_eq: [0.0, 2.2407036591877545, 4.560530062709164]
   threads_per_block: 512
+  plot_params:
+    font_size: 15

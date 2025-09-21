@@ -5,42 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="580c4c10-eddb-4d1b-a0a9-9db1346a79eb" name="Changes" comment="eq_finder modifications">
-      <change afterPath="$PROJECT_DIR$/lib/computation_template" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/eq_finder" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/computing/engines_kneadings_fbpo.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/computing/workers_kneadings_fbpo.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/cuda_sweep/sweep_fbpo.npz" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/cuda_sweep/sweep_fbpo.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/system_analysis/inits.npz" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitmodules" beforeDir="false" afterPath="$PROJECT_DIR$/.gitmodules" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/kneadings.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kneadings.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kneadings_main.npz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kneadings_main_prototype.npz" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda_sweep/sweep_trese.npz" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main_prototype.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda_sweep/sweep_trese.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mapping/convert.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/convert.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mapping/mode_map.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/mode_map.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mapping/mode_map_1.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/mode_map_1.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mapping/normalization.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/normalization.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mapping/plot_kneadings.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/plot_kneadings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plots/experiments.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/plots/kneadings_test.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/plots/trajectory_plot.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/plots/trajectory_xy_plot.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/plots/trajectory_xz_plot.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/plots/trajectory_yz_plot.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/system_analysis/get_inits.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/system_analysis/get_inits.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/system_analysis/inits.npz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/system_analysis/system.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/cpu_version.py" beforeDir="false" afterPath="$PROJECT_DIR$/test/cpu_version.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/cpu_version_prototype.py" beforeDir="false" afterPath="$PROJECT_DIR$/test/cpu_version_prototype.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/cuda_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test/cuda_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/rk4_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test/rk4_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/output/kneadings_fbpo_2025-09-21_14-16-12.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/computing/workers_kneadings_fbpo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/computing/workers_kneadings_fbpo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/mapping/mode_map_1.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/mapping/plot_kneadings.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/mapping/plot_kneadings.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

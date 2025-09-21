@@ -9,6 +9,7 @@ import lib.eq_finder.SystOsscills as so
 from src.system_analysis.get_inits import continue_equilibrium, get_saddle_foci_grid, find_inits_for_equilibrium_grid, generate_parameters
 from src.mapping.convert import decimal_to_quaternary
 from src.cuda_sweep.sweep_fbpo import sweep
+from src.mapping.plot_kneadings import plot_mode_map, set_random_color_map
 
 
 @register(registry, 'init', 'kneadings_fbpo')
@@ -44,7 +45,7 @@ def init_kneadings_fbpo(config, timeStamp):
                                        start_eq, up_n, down_n, left_n, right_n,
                                        up_step, down_step, left_step, right_step)
         sf_grid = get_saddle_foci_grid(eq_grid, up_n, down_n, left_n, right_n)
-        inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n, )
+        inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n)
         params_x, params_y = generate_parameters((a, b), up_n, down_n, left_n, right_n,
                                             up_step, down_step, left_step, right_step)
     else:
@@ -124,6 +125,9 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     b = def_sys_dict['b']
     r = def_sys_dict['r']
 
+    plot_params_dict = config['misc']['plot_params']
+    font_size = plot_params_dict['font_size']
+
     grid_dict = config['grid']
     up_n = grid_dict['second']['up_n']
     up_step = grid_dict['second']['up_step']
@@ -136,38 +140,22 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
 
     kneadings_weighted_sum_set = workerResult
 
-    x_count = left_n + right_n + 1
-    y_count = up_n + down_n + 1
-    x_start = a - left_n * left_step
-    x_end = a + right_n * right_step
-    y_start = b - down_n * down_step
-    y_end = b + up_n * up_step
+    param_x_caption = f"{grid_dict['first']['caption']}"
+    param_x_count = left_n + right_n + 1
+    param_x_start = a - left_n * left_step
+    param_x_end = a + right_n * right_step
+    param_y_caption = f"{grid_dict['second']['caption']}"
+    param_y_count = up_n + down_n + 1
+    param_y_start = b - down_n * down_step
+    param_y_end = b + up_n * up_step
 
-    colorMapLevels = 2 ** 8
-    blue = np.linspace(0.01, 1.0, colorMapLevels)
-    red = 1 - blue
-    green = np.random.random(colorMapLevels) * 0.8
-    # green = np.linspace(0.8, 1.0, colorMapLevels)
-    RGB = np.column_stack((red, green, blue))
-    custom_cmap = ListedColormap(RGB)
-
-    # нормализация
-
-    plt.figure(figsize=(8, 8))
-    plt.imshow(
-        np.reshape(kneadings_weighted_sum_set, (x_count, y_count), 'F'),
-        extent=[x_start, x_end, y_start, y_end],
-        cmap=custom_cmap,
-        vmin=-0.1,
-        vmax=1,
-        origin='lower',
-        aspect='auto'
-    )
-    plt.xlabel('Параметр a')
-    plt.ylabel('Параметр b')
-    plt.title('Карта режимов')
+    plot_mode_map(kneadings_weighted_sum_set, set_random_color_map, param_x_caption, param_y_caption,
+                  param_x_start, param_x_end, param_x_count, param_y_start, param_y_end, param_y_count,
+                  font_size)
+    plt.title(r'$\omega = 0$, $r = 1$', fontsize=font_size)
 
     outFileExtension = config['output']['imageExtension']
     outname = makeFinalOutname(config, initResult, outFileExtension, startTime)
     plt.savefig(outname, dpi=300, bbox_inches='tight')
+    plt.close()
     print("Mode map successfully saved")
