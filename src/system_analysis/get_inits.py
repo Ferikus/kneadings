@@ -10,10 +10,17 @@ def find_equilibrium_by_guess(rhs, jac, initial_guess=np.zeros(3), tol=1e-10):
     """Находит состояние равновесия системы для заданных параметров."""
     initial_guess = np.asarray(initial_guess)
 
+    # result = scipy.optimize.root(
+    #     rhs,
+    #     initial_guess,
+    #     method='krylov',
+    #     options={'xtol': tol}  # 'jac_options': method
+    # )
     result = scipy.optimize.root(
         rhs,
         initial_guess,
-        method='krylov',
+        jac=jac,
+        method='lm',
         options={'xtol': tol}
     )
     if not result.success:
@@ -21,6 +28,7 @@ def find_equilibrium_by_guess(rhs, jac, initial_guess=np.zeros(3), tol=1e-10):
 
     eq_coords = result.x
     eq_obj = sf.getEquilibriumInfo(eq_coords, jac)
+
     return eq_obj
 
 
@@ -162,41 +170,43 @@ def generate_parameters(start_params, up_n, down_n, left_n, right_n,
 
 
 if __name__ == '__main__':
-    a = -2.67
-    b = -1.61268422884276
     w = 0
+    a = -2.911209192326542
+    b = -1.612684228842761
     r = 1.0
 
-    start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
+    # start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
 
-    # поиск стартового седло-фокуса
-    bounds = [(-0.1, 2 * np.pi + 0.1)] * 2
-    borders = [(-1e-15, 2 * np.pi + 1e-15)] * 2
+    # # поиск стартового седло-фокуса
+    # bounds = [(-0.1, 2 * np.pi + 0.1)] * 2
+    # borders = [(-1e-15, 2 * np.pi + 1e-15)] * 2
+    #
+    # # первые две функции -- общая система, вторые две -- в которой ищем с.р., дальше функция приведения
+    # equilibria = sf.findEquilibria(lambda psis: start_sys.getReducedSystem(psis), lambda psis: start_sys.getReducedSystemJac(psis),
+    #                                lambda psis: start_sys.getRestriction(psis), lambda psis: start_sys.getRestrictionJac(psis),
+    #                                lambda phi: np.concatenate([[0.], phi]), bounds, borders,
+    #                                sf.ShgoEqFinder(1000, 1, 1e-10),
+    #                                sf.STD_PRECISION)
+    #
+    # start_eq = None
+    # for eq in equilibria:  # перебираем все с.р., которые были найдены
+    #     print(f"{sf.is3DSaddleFocusWith1dU(eq, sf.STD_PRECISION)} at {eq.coordinates}")
+    #     if sf.is3DSaddleFocusWith1dU(eq, sf.STD_PRECISION):
+    #         start_eq = np.array(eq.coordinates)
+    #         print(f"Starting with saddle-focus {start_eq.round(4)} with parameters ({w:.3f}, {a:.3f}, {b:.3f}, {r:.3f})")
+    #         break
 
-    # первые две функции -- общая система, вторые две -- в которой ищем с.р., дальше функция приведения
-    equilibria = sf.findEquilibria(lambda psis: start_sys.getReducedSystem(psis), lambda psis: start_sys.getReducedSystemJac(psis),
-                                   lambda psis: start_sys.getRestriction(psis), lambda psis: start_sys.getRestrictionJac(psis),
-                                   lambda phi: np.concatenate([[0.], phi]), bounds, borders,
-                                   sf.ShgoEqFinder(1000, 1, 1e-10),
-                                   sf.STD_PRECISION)
+    start_eq = [0.0, 2.30956058, 4.75652024]
 
-    start_eq = None
-    for eq in equilibria:  # перебираем все с.р., которые были найдены
-        print(f"{sf.is3DSaddleFocusWith1dU(eq, sf.STD_PRECISION)} at {eq.coordinates}")
-        if sf.is3DSaddleFocusWith1dU(eq, sf.STD_PRECISION):
-            start_eq = np.array(eq.coordinates)
-            print(f"Starting with saddle-focus {start_eq.round(4)} with parameters ({w:.3f}, {a:.3f}, {b:.3f}, {r:.3f})")
-            break
+    up_n = 10
+    down_n = 10
+    left_n = 10
+    right_n = 10
 
-    up_n = 1
-    down_n = 2
-    left_n = 1
-    right_n = 1
-
-    up_step = 0.1
-    down_step = 0.1
-    left_step = 0.1
-    right_step = 0.1
+    up_step = 0.001
+    down_step = 0.001
+    left_step = 0.001
+    right_step = 0.001
 
     start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
     reduced_rhs_wrapper = start_sys.getReducedSystem
@@ -216,14 +226,23 @@ if __name__ == '__main__':
     else:
         print("Start saddle-focus was not found")
 
-    np.savez(
-        'inits.npz',
-        inits=inits,
-        nones=nones,
-        alphas=params_x,
-        betas=params_y,
-        up_n=up_n,
-        down_n=down_n,
-        left_n=left_n,
-        right_n=right_n
-    )
+    # for j in range(up_n + down_n + 1):
+    #     for i in range(left_n + right_n + 1):
+    #         index = i + j * (left_n + right_n + 1)
+    #         if index in nones:
+    #             print(f"Node ({i}, {j}) | {index} | IS IN NONES")
+    #         else:
+    #             print(f"Node ({i}, {j}) | {index} | Init {inits[index * 3 + 0], inits[index * 3 + 1], inits[index * 3 + 2]} "
+    #                   f"for equilibrium {sf_grid[j][i].coordinates} with parameters {params_x[index], params_y[index]}")
+
+    # np.savez(
+    #     'inits.npz',
+    #     inits=inits,
+    #     nones=nones,
+    #     alphas=params_x,
+    #     betas=params_y,
+    #     up_n=up_n,
+    #     down_n=down_n,
+    #     left_n=left_n,
+    #     right_n=right_n
+    # )

@@ -1,6 +1,6 @@
 import numpy as np
 from numba import cuda
-from src.mapping.convert import decimal_to_binary
+from src.mapping.convert import decimal_to_number_system
 
 DIM = 3
 THREADS_PER_BLOCK = 512
@@ -231,7 +231,7 @@ if __name__ == "__main__":
         j = idx % sweep_size
 
         kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        kneading_symbolic = decimal_to_binary(kneading_weighted_sum)
+        kneading_symbolic = decimal_to_number_system(kneading_weighted_sum, 2)
 
         print(f"a: {a_start + i * (a_end - a_start) / (sweep_size - 1):.2f}, "
               f"b: {b_start + j * (b_end - b_start) / (sweep_size - 1):.2f} => "

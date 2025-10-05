@@ -8,6 +8,3 @@ def general_engine(worker, configDict, startTime, initResult, dataGrid):
     end = time.time()
     print(f"Took {end - start}s ({datetime.timedelta(seconds=end - start)})")
     return workerResult
-
-
-ENGINE_REGISTRY = {'kneadings_fbpo': general_engine}

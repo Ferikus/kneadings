@@ -3,27 +3,57 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
 from src.mapping.normalization import *
-from src.mapping.convert import decimal_to_binary, binary_to_decimal
+from src.mapping.convert import decimal_to_number_system, binary_to_decimal
 
 
 def set_random_color_map():
-    colorMapLevels = 2**8
-    blue = np.linspace(0.01, 1.0, colorMapLevels)
+    color_map_levels = 2**8
+    blue = np.linspace(0.01, 1.0, color_map_levels)
     red = 1 - blue
-    green = np.random.random(colorMapLevels) * 0.8
-    # green = np.linspace(0.8, 1.0, colorMapLevels)
+
+    # green1 = np.load('./input/green.npy')
+    # i = 2679
+    # np.random.seed(i)
+    # green = np.random.random(color_map_levels)
+    # while green[0] > 0.1 or green[1] > 0.1 or green[2] > 0.1:  # and green[1] > 0.1 and green[2] > 0.1
+    # # while green[0] != green1[0]:
+    #     i += 1
+    #     np.random.seed(i)
+    #     green = np.random.random(color_map_levels)
+    #     print(i)
+    # print(green)
+    # print(green[0], green[1], green[2])
+
+    np.random.seed(7)
+    green = np.random.random(color_map_levels) * 0.8
+
     RGB = np.column_stack((red, green, blue))
     custom_cmap = ListedColormap(RGB)
     return custom_cmap
 
 def set_gradient_color_map():
-    colorMapLevels = 2**8
-    blue = np.linspace(0.01, 1.0, colorMapLevels)
+    color_map_levels = 2**8
+    blue = np.linspace(0.01, 1.0, color_map_levels)
     red = 1 - blue
-    green = np.linspace(0.8, 1.0, colorMapLevels)
+    green = np.linspace(0.8, 1.0, color_map_levels)
     RGB = np.column_stack((red, green, blue))
     custom_cmap = ListedColormap(RGB)
     return custom_cmap
+
+
+def set_mode_map_size(param_x_count, param_y_count):
+    size_x = param_x_count
+    size_y = param_y_count
+    max_size = 10.
+
+    if size_x > size_y:
+        size_y *= max_size / size_x
+        size_x = max_size
+    else:
+        size_x *= max_size / size_y
+        size_y = max_size
+
+    return (size_x, size_y)
 
 
 def plot_mode_map(kneadings_weighted_sum_set, set_color_map, param_x_caption, param_y_caption,
@@ -43,9 +73,9 @@ def plot_mode_map(kneadings_weighted_sum_set, set_color_map, param_x_caption, pa
     #     kneadings_norm.append(kneading_dec_norm)
     #     # kneadings_norm.append(1.0/len(kneading_bin_norm[1]))
 
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=set_mode_map_size(param_x_count, param_y_count))
     plt.imshow(
-        np.reshape(kneadings_weighted_sum_set, (param_x_count, param_y_count), 'F'),
+        np.reshape(kneadings_weighted_sum_set, (param_y_count, param_x_count)),
         extent=[param_x_start, param_x_end, param_y_start, param_y_end],
         cmap=custom_cmap,
         vmin=-0.3,
@@ -57,6 +87,8 @@ def plot_mode_map(kneadings_weighted_sum_set, set_color_map, param_x_caption, pa
     plt.ylabel(f'${param_y_caption}$', fontsize=font_size)
     plt.tick_params(axis='x', labelsize=font_size)
     plt.tick_params(axis='y', labelsize=font_size)
+    plt.locator_params(axis='x', nbins=5)
+    plt.locator_params(axis='x', nbins=5)
 
 
 if __name__ == "__main__":

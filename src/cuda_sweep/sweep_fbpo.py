@@ -1,6 +1,6 @@
 import numpy as np
 from numba import cuda
-from src.mapping.convert import decimal_to_quaternary
+from src.mapping.convert import decimal_to_number_system
 
 PARAM_TO_INDEX = {
     'w': 0,
@@ -410,8 +410,8 @@ if __name__ == "__main__":
     print("Results:")
     for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
         kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        kneading_symbolic = decimal_to_quaternary(kneading_weighted_sum)
+        kneading_symbolic = decimal_to_number_system(kneading_weighted_sum, 4)
 
-        print(f"a: {params_x[idx]:.6f}, "
-              f"b: {params_y[idx]:.6f} => "
+        print(f"a: {params_x[idx]:.9f}, "
+              f"b: {params_y[idx]:.9f} => "
               f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")

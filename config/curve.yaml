@@ -4,10 +4,10 @@
 # for studied system; system is always created with
 # these parameters first
 defaultSystem:
-  w: 0.0
+  w: 0
   a: -2.911209192326542
   b: -1.612684228842761
-  r: 1.0
+  r: 1
 # grid describes parameter sweeps
 # it must have either "first" AND "second" keys (biparametric),
 # or "first" only (single parameter)
@@ -18,15 +18,15 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 200
-    right_n: 200
+    left_n: 250
+    right_n: 300
     left_step: 0.001
     right_step: 0.001
     name: a
     caption: \alpha
   second:
-    down_n: 100
-    up_n: 300
+    down_n: 300
+    up_n: 30
     down_step: 0.001
     up_step: 0.001
     name: b
@@ -52,7 +52,7 @@ kneadings_fbpo:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/"
-  mask: test
+  mask: curve
   useTimestamp: file
   imageExtension: png
 # some functions might use additional keyword-arguments

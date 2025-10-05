@@ -1,16 +1,20 @@
 import numpy as np
 import pprint
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 
-from lib.computation_template.workers_sl import registry
 from lib.computation_template.workers_utils import register, makeFinalOutname
 
 import lib.eq_finder.SystOsscills as so
 from src.system_analysis.get_inits import continue_equilibrium, get_saddle_foci_grid, find_inits_for_equilibrium_grid, generate_parameters
-from src.mapping.convert import decimal_to_quaternary
+from src.mapping.convert import decimal_to_number_system
 from src.cuda_sweep.sweep_fbpo import sweep
 from src.mapping.plot_kneadings import plot_mode_map, set_random_color_map
+
+registry = {
+    "worker": {},
+    "init": {},
+    "post": {}
+}
 
 
 @register(registry, 'init', 'kneadings_fbpo')
@@ -23,6 +27,7 @@ def init_kneadings_fbpo(config, timeStamp):
 
     param_to_index = config['misc']['param_to_index']
     start_eq = config['misc']['start_eq']
+    # init_flag = config['misc']['init_flag']
 
     grid_dict = config['grid']
     up_n = grid_dict['second']['up_n']
@@ -34,23 +39,35 @@ def init_kneadings_fbpo(config, timeStamp):
     right_n = grid_dict['first']['right_n']
     right_step = grid_dict['first']['right_step']
 
-    start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
-    reduced_rhs_wrapper = start_sys.getReducedSystem
-    reduced_jac_wrapper = start_sys.getReducedSystemJac
-    get_params = start_sys.getParams
-    set_params = start_sys.setParams
-
-    if start_eq is not None:
-        eq_grid = continue_equilibrium(reduced_rhs_wrapper, reduced_jac_wrapper, get_params, set_params,
-                                       param_to_index, 'a', 'b',
-                                       start_eq, up_n, down_n, left_n, right_n,
-                                       up_step, down_step, left_step, right_step)
-        sf_grid = get_saddle_foci_grid(eq_grid, up_n, down_n, left_n, right_n)
-        inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n)
-        params_x, params_y = generate_parameters((a, b), up_n, down_n, left_n, right_n,
-                                            up_step, down_step, left_step, right_step)
+    init_res_name = config['misc']['init_res']
+    if init_res_name != "ignore":  # init_flag
+        init_res = np.load("./input/" + init_res_name + ".npz")
+        inits = init_res['inits']
+        nones = init_res['nones']
+        params_x = init_res['params_x']
+        params_y = init_res['params_y']
+        if len(inits) != (3 * (left_n + right_n + 1) * (up_n + down_n + 1)):
+            raise Exception("Saved initial conditions array differs from entered grid params!")
+        if not np.array_equal(start_eq, init_res['start_eq']):
+            raise Exception("Start equilibrium of saved initial conditions array ")
     else:
-        print("Start saddle-focus was not found")
+        start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
+        reduced_rhs_wrapper = start_sys.getReducedSystem
+        reduced_jac_wrapper = start_sys.getReducedSystemJac
+        get_params = start_sys.getParams
+        set_params = start_sys.setParams
+
+        if start_eq is not None:
+            eq_grid = continue_equilibrium(reduced_rhs_wrapper, reduced_jac_wrapper, get_params, set_params,
+                                           param_to_index, 'a', 'b',
+                                           start_eq, up_n, down_n, left_n, right_n,
+                                           up_step, down_step, left_step, right_step)
+            sf_grid = get_saddle_foci_grid(eq_grid, up_n, down_n, left_n, right_n)
+            inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n)
+            params_x, params_y = generate_parameters((a, b), up_n, down_n, left_n, right_n,
+                                                up_step, down_step, left_step, right_step)
+        else:
+            raise Exception("Start saddle-focus was not found!")
 
     return {'inits': inits, 'nones': nones, 'params_x': params_x, 'params_y': params_y, 'targetDir': 'output'}
 
@@ -108,16 +125,16 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
         kneadings_end
     )
 
-    print("Results:")
+    # print("Results:")
     for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
         kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        kneading_symbolic = decimal_to_quaternary(kneading_weighted_sum)
+        kneading_symbolic = decimal_to_number_system(kneading_weighted_sum, 4)
 
-        print(f"a: {params_x[idx]:.6f}, "
-              f"b: {params_y[idx]:.6f} => "
-              f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
-        kneadings_records = (kneadings_records + f"a: {params_x[idx]:.6f}, "
-                                                 f"b: {params_y[idx]:.6f} => "
+        # print(f"a: {params_x[idx]:.9f}, "
+        #       f"b: {params_y[idx]:.9f} => "
+        #       f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
+        kneadings_records = (kneadings_records + f"a: {params_x[idx]:.9f}, "
+                                                 f"b: {params_y[idx]:.9f} => "
                                                  f"{kneading_symbolic} (Raw: {kneading_weighted_sum})\n")
 
     return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set, 'kneadings_records': kneadings_records}
@@ -133,6 +150,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
 
     plot_params_dict = config['misc']['plot_params']
     font_size = plot_params_dict['font_size']
+    init_res_name = config['misc']['init_res']
 
     grid_dict = config['grid']
     up_n = grid_dict['second']['up_n']
@@ -143,6 +161,12 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     left_step = grid_dict['first']['left_step']
     right_n = grid_dict['first']['right_n']
     right_step = grid_dict['first']['right_step']
+
+    inits = initResult['inits']
+    nones = initResult['nones']
+    params_x = initResult['params_x']
+    params_y = initResult['params_y']
+    start_eq = config['misc']['start_eq']
 
     kneadings_weighted_sum_set = workerResult['kneadings_weighted_sum_set']
     kneadings_records = workerResult['kneadings_records']
@@ -161,13 +185,29 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
                   font_size)
     plt.title(r'$\omega = 0$, $r = 1$', fontsize=font_size)
 
-    outFileExtension = config['output']['imageExtension']
-    plot_outname = makeFinalOutname(config, initResult, outFileExtension, startTime)
-    plt.savefig(plot_outname, dpi=300, bbox_inches='tight')
-    plt.close()
-    print("Mode map successfully saved")
+    if init_res_name != "ignore":
+        npz_outname = makeFinalOutname(config, initResult, "npz", startTime)
+        np.savez(
+            npz_outname,
+            inits=inits,
+            nones=nones,
+            params_x=params_x,
+            params_y=params_y,
+            start_eq=start_eq
+        )
+        print("Init stage results successfully saved")
+
+    npy_outname = makeFinalOutname(config, initResult, "npy", startTime)
+    np.save(npy_outname, kneadings_weighted_sum_set)
+    print("Kneadings set successfully saved")
 
     txt_outname = makeFinalOutname(config, initResult, "txt", startTime)
     with open(f'{txt_outname}', 'w') as txt_output:
         txt_output.write(kneadings_records)
     print("Kneadings records successfully saved")
+
+    img_extension = config['output']['imageExtension']
+    plot_outname = makeFinalOutname(config, initResult, img_extension, startTime)
+    plt.savefig(plot_outname, dpi=300, bbox_inches='tight')
+    plt.close()
+    print("Mode map successfully saved")

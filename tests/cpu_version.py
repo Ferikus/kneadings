@@ -1,5 +1,5 @@
 import numpy as np
-from src.mapping.convert import decimal_to_quaternary
+from src.mapping.convert import decimal_to_number_system
 
 DIM = 4
 DIM_REDUCED = DIM - 1
@@ -287,7 +287,7 @@ if __name__ == "__main__":
     print("Results:")
     for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
         kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        kneading_symbolic = decimal_to_quaternary(kneading_weighted_sum)
+        kneading_symbolic = decimal_to_number_system(kneading_weighted_sum, 4)
 
         print(f"a: {alphas[idx]:.6f}, "
               f"b: {betas[idx]:.6f} => "

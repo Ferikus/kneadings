@@ -1,5 +1,5 @@
-def decimal_to_binary(num):
-    """Converts decimal to binary"""
+def decimal_to_number_system(num, system_num):
+    """Converts decimal to a certain number system"""
     if num < 0:
         return "Error"
     if num >= 1:
@@ -18,13 +18,14 @@ def decimal_to_binary(num):
 
     binary_fractional = ""
     while fractional_part > 0 and len(binary_fractional) < 10:
-        fractional_part *= 2
+        fractional_part *= system_num
         bit = int(fractional_part)
         binary_fractional += str(bit)
         fractional_part -= bit
 
     # return binary_integer + binary_fractional
-    return binary_fractional
+    return binary_fractional[::-1]
+    # reverse string to put it in the right order because of heavy-tail
 
 
 def binary_to_decimal(binary_str):
@@ -35,23 +36,3 @@ def binary_to_decimal(binary_str):
         if bit == '1':
             decimal += 1.0 / (2 ** i)
     return decimal
-
-
-def decimal_to_quaternary(num):
-    """Converts decimal to quaternary"""
-    if num < 0:
-        return "Error"
-    if num >= 1:
-        raise ValueError("Number must be less than 1")
-
-    integer_part = int(num)
-    fractional_part = num - integer_part
-
-    binary_fractional = ""
-    while fractional_part > 0 and len(binary_fractional) < 10:
-        fractional_part *= 4
-        bit = int(fractional_part)
-        binary_fractional += str(bit)
-        fractional_part -= bit
-
-    return binary_fractional

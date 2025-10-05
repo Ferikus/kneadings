@@ -5,7 +5,7 @@
 # these parameters first
 defaultSystem:
   w: 0
-  a: -2.911209192326542
+  a: -2.484
   b: -1.612684228842761
   r: 1
 # grid describes parameter sweeps
@@ -22,9 +22,6 @@ grid:
     right_n: 300
     left_step: 0.0001
     right_step: 0.0001
-    min: 0
-    max: 0
-    steps: 0
     name: a
     caption: \alpha
   second:
@@ -32,9 +29,6 @@ grid:
     up_n: 300
     down_step: 0.0001
     up_step: 0.0001
-    min: 0
-    max: 0
-    steps: 0
     name: b
     caption: \beta
 # name of the task to perform
@@ -58,18 +52,21 @@ kneadings_fbpo:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/"
-  mask: kneadings_fbpo
-  useTimestamp: file
+  mask: attr_d
+  useTimestamp: ignore
   imageExtension: png
 # some functions might use additional keyword-arguments
 # we can pass them through "misc" dictionary
+# "init_res": file name of the init stage result which is to be reused (without .npz)
+# - "ignore": go through init stage from scratch
 misc:
   param_to_index:
     w: 0
     a: 1
     b: 2
     r: 3
-  start_eq: [0.0, 2.30956058, 4.75652024]
+  start_eq: [0., 2.21246831, 4.45838506]
+  init_res: ignore
   threads_per_block: 512
   plot_params:
     font_size: 15

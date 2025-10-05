@@ -3,11 +3,11 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'lib/computation_template'))
 
-import lib.computation_template.workers_sl as wrk
-import src.computing.workers_kneadings_fbpo  # нужно для регистрации воркеров
-from src.computing.engines_kneadings_fbpo import ENGINE_REGISTRY
+import src.computing.workers_kneadings_fbpo as wrk
+import src.computing.engines_kneadings_fbpo as engine
 from lib.computation_template.engine import workflow, getConfiguration, parseArguments
 
+ENGINE_REGISTRY = {'kneadings_fbpo': engine.general_engine}
 
 if __name__ == "__main__":
     parseArguments(sys.argv)
@@ -17,5 +17,6 @@ if __name__ == "__main__":
     worker = wrk.registry['worker'][taskName]
     engine = ENGINE_REGISTRY[taskName]
     postProcess = wrk.registry['post'][taskName]
-    workflow(configDict, initFunc, worker, engine, postProcess)
+    def gridMaker(configDict): pass
+    workflow(configDict, initFunc, gridMaker, worker, engine, postProcess)
 
