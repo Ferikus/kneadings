@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 from lib.computation_template.workers_utils import register, makeFinalOutname
 
+import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 from src.system_analysis.get_inits import continue_equilibrium, get_saddle_foci_grid, find_inits_for_equilibrium_grid, generate_parameters
 from src.mapping.convert import decimal_to_number_system
@@ -27,7 +28,6 @@ def init_kneadings_fbpo(config, timeStamp):
 
     param_to_index = config['misc']['param_to_index']
     start_eq = config['misc']['start_eq']
-    # init_flag = config['misc']['init_flag']
 
     grid_dict = config['grid']
     up_n = grid_dict['second']['up_n']
@@ -40,7 +40,7 @@ def init_kneadings_fbpo(config, timeStamp):
     right_step = grid_dict['first']['right_step']
 
     init_res_name = config['misc']['init_res']
-    if init_res_name != "ignore":  # init_flag
+    if init_res_name != "ignore":
         init_res = np.load("./input/" + init_res_name + ".npz")
         inits = init_res['inits']
         nones = init_res['nones']
@@ -62,8 +62,8 @@ def init_kneadings_fbpo(config, timeStamp):
                                            param_to_index, 'a', 'b',
                                            start_eq, up_n, down_n, left_n, right_n,
                                            up_step, down_step, left_step, right_step)
-            sf_grid = get_saddle_foci_grid(eq_grid, up_n, down_n, left_n, right_n)
-            inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n)
+            sf_grid = get_saddle_foci_grid(eq_grid, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
+            inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
             params_x, params_y = generate_parameters((a, b), up_n, down_n, left_n, right_n,
                                                 up_step, down_step, left_step, right_step)
         else:
@@ -130,11 +130,11 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
         kneading_weighted_sum = kneadings_weighted_sum_set[idx]
         kneading_symbolic = decimal_to_number_system(kneading_weighted_sum, 4)
 
-        # print(f"a: {params_x[idx]:.9f}, "
-        #       f"b: {params_y[idx]:.9f} => "
+        # print(f"a: {params_x[idx]:.15f}, "
+        #       f"b: {params_y[idx]:.15f} => "
         #       f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
-        kneadings_records = (kneadings_records + f"a: {params_x[idx]:.9f}, "
-                                                 f"b: {params_y[idx]:.9f} => "
+        kneadings_records = (kneadings_records + f"a: {params_x[idx]:.15f}, "
+                                                 f"b: {params_y[idx]:.15f} => "
                                                  f"{kneading_symbolic} (Raw: {kneading_weighted_sum})\n")
 
     return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set, 'kneadings_records': kneadings_records}
@@ -183,9 +183,9 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     plot_mode_map(kneadings_weighted_sum_set, set_random_color_map, param_x_caption, param_y_caption,
                   param_x_start, param_x_end, param_x_count, param_y_start, param_y_end, param_y_count,
                   font_size)
-    plt.title(r'$\omega = 0$, $r = 1$', fontsize=font_size)
+    plt.title(fr'$\omega = {w}$, $r = {r}$', fontsize=font_size)
 
-    if init_res_name != "ignore":
+    if init_res_name == "ignore":
         npz_outname = makeFinalOutname(config, initResult, "npz", startTime)
         np.savez(
             npz_outname,
@@ -208,6 +208,6 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
 
     img_extension = config['output']['imageExtension']
     plot_outname = makeFinalOutname(config, initResult, img_extension, startTime)
-    plt.savefig(plot_outname, dpi=300, bbox_inches='tight')
+    plt.savefig(plot_outname, dpi=600, bbox_inches='tight')
     plt.close()
     print("Mode map successfully saved")

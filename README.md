@@ -10,7 +10,7 @@
 ## Установка и запуск
 
 ```bash
-git clone https://github.com/Ferikus/kneadings.git
+git clone --recursive https://github.com/Ferikus/kneadings.git
 cd <путь к проекту>
 python main.py <путь к конфигу формата YAML>
 ```
@@ -34,18 +34,6 @@ python main.py <путь к конфигу формата YAML>
 `test` -- вспомогательные материалы при разработке и тестировании проекта
 
 `main.py` -- главный файл проекта: автоматический подсчёт начальных условий, подсчёт нидингов и отрисовка карты режимов
-
-## Требования
-
-- Python 3.9+
-- `scikit-learn==1.2.2`
-- `numpy==1.23.5`
-- `matplotlib==3.9.4`
-- `numba==0.60.0`
-- `pandas==2.3.2`
-- `pycairo==1.28.0`
-- `PyYAML==6.0.2`
-- GPU, совместимый с CUDA
 
 ## Литература
 

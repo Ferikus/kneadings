@@ -18,17 +18,17 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 250
-    right_n: 100
-    left_step: 0.001
-    right_step: 0.001
+    left_n: 500
+    right_n: 200
+    left_step: 0.0005
+    right_step: 0.0005
     name: a
     caption: \alpha
   second:
-    down_n: 200
-    up_n: 30
-    down_step: 0.001
-    up_step: 0.001
+    down_n: 400
+    up_n: 60
+    down_step: 0.0005
+    up_step: 0.0005
     name: b
     caption: \beta
 # name of the task to perform
@@ -53,7 +53,7 @@ kneadings_fbpo:
 output:
   directory: "./output/"
   mask: bigger_2
-  useTimestamp: file
+  useTimestamp: ignore
   imageExtension: png
 # some functions might use additional keyword-arguments
 # we can pass them through "misc" dictionary

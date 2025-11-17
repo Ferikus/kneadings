@@ -2,10 +2,12 @@ import numpy as np
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 
+np.set_printoptions(precision=15)
+
 if __name__ == "__main__":
-    a = -2.911209192326542
-    b = -1.612684228842761
-    w = 0
+    w = 0.0
+    a = -2.907309192326542
+    b = -1.623684228842761
     r = 1.0
 
     start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
@@ -26,4 +28,4 @@ if __name__ == "__main__":
     for eq in equilibria:  # перебираем все с.р., которые были найдены
         if sf.is3DSaddleFocusWith1dU(eq, sf.STD_PRECISION):
             start_eq = np.array(eq.coordinates)
-            print(f"{start_eq} with parameters ({w:.3f}, {a:.3f}, {b:.3f}, {r:.3f})")
+            print(f"{start_eq} with parameters ({w:.3f}, {a:.15f}, {b:.15f}, {r:.3f})")

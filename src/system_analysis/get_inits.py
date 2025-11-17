@@ -5,8 +5,17 @@ import scipy
 
 from src.cuda_sweep.sweep_fbpo import PARAM_TO_INDEX
 
+# BETTER_PRECISION = sf.PrecisionSettings(zeroImagPartEps=1e-20,
+#                                         zeroRealPartEps=1e-20,
+#                                         clustDistThreshold=1e-14,
+#                                         separatrixShift=1e-14,
+#                                         separatrix_rTol=1e-20,
+#                                         separatrix_aTol=1e-20,
+#                                         marginBorder=0
+#                                         )
 
-def find_equilibrium_by_guess(rhs, jac, initial_guess=np.zeros(3), tol=1e-10):
+
+def find_equilibrium_by_guess(rhs, jac, initial_guess=np.zeros(3), tol=1e-14):
     """Находит состояние равновесия системы для заданных параметров."""
     initial_guess = np.asarray(initial_guess)
 
@@ -98,14 +107,14 @@ def continue_equilibrium(rhs, jac, get_params, set_params, param_to_index, param
     return grid
 
 
-def get_saddle_foci_grid(grid, up_n, down_n, left_n, right_n):
+def get_saddle_foci_grid(grid, up_n, down_n, left_n, right_n, ps: sf.PrecisionSettings):
     """Составляет сетку седло-фокусов по сетке состояний равновесия"""
     print("Filling up saddle-foci grid...")
     sf_grid = [[None for _ in range(len(grid[0]))] for _ in range(len(grid))]
 
     for j in range(up_n + down_n + 1):
         for i in range(left_n + right_n + 1):
-            if grid[j][i] is not None and sf.is3DSaddleFocusWith1dU(grid[j][i], sf.STD_PRECISION):
+            if grid[j][i] is not None and sf.is3DSaddleFocusWith1dU(grid[j][i], ps):
                 sf_grid[j][i] = grid[j][i]
             #     print(f"{i + j * (left_n + right_n + 1)} {i, j} -- saddle-focus")
             # else:
@@ -114,13 +123,9 @@ def get_saddle_foci_grid(grid, up_n, down_n, left_n, right_n):
     return sf_grid
 
 
-def find_inits_for_equilibrium_grid(sf_grid, dim, up_n, down_n, left_n, right_n):
+def find_inits_for_equilibrium_grid(sf_grid, dim, up_n, down_n, left_n, right_n, ps: sf.PrecisionSettings):
     """Находит начальные условия для сетки седло-фокусов"""
-    # допустим, что grid на самом деле это просто двумерный массив с eq_objs
-    # тогда мы можем записывать inits сразу в одномерный массив
-    # опираясь только на i j в двумерном массиве grid
     print("Finding initial conditions...")
-
     inits = np.empty(dim * (left_n + right_n + 1) * (up_n + down_n + 1))
     nones = []  # массив индексов там, где None. Нужен при обходе нидингов
 
@@ -130,8 +135,9 @@ def find_inits_for_equilibrium_grid(sf_grid, dim, up_n, down_n, left_n, right_n)
 
             eq_obj = sf_grid[j][i]
             if eq_obj is not None:
-                if sf.getInitPointsOnUnstable1DSeparatrix(eq_obj, sf.pickCirSeparatrix, sf.STD_PRECISION):
-                    init_pt = sf.getInitPointsOnUnstable1DSeparatrix(eq_obj, sf.pickCirSeparatrix, sf.STD_PRECISION)[0]
+                init_pts = sf.getInitPointsOnUnstable1DSeparatrix(eq_obj, sf.pickCirSeparatrix, ps)
+                if init_pts:
+                    init_pt = init_pts[0]
                     for k in range(dim):
                         inits[index * dim + k] = init_pt[k]
                     # print(f"{index} {init_pt}")
@@ -171,8 +177,10 @@ def generate_parameters(start_params, up_n, down_n, left_n, right_n,
 
 if __name__ == '__main__':
     w = 0
-    a = -2.911209192326542
-    b = -1.612684228842761
+    # a = -2.911209192326542
+    # b = -1.612684228842761
+    a = -2.907273192326542
+    b = -1.623684228842761
     r = 1.0
 
     # start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
@@ -196,12 +204,13 @@ if __name__ == '__main__':
     #         print(f"Starting with saddle-focus {start_eq.round(4)} with parameters ({w:.3f}, {a:.3f}, {b:.3f}, {r:.3f})")
     #         break
 
-    start_eq = [0.0, 2.30956058, 4.75652024]
+    # start_eq = [0.0, 2.30956058, 4.75652024]
+    start_eq = [0., 2.30999808834901,  4.766227891399033]
 
-    up_n = 10
-    down_n = 10
-    left_n = 10
-    right_n = 10
+    up_n = 1
+    down_n = 1
+    left_n = 1
+    right_n = 1
 
     up_step = 0.001
     down_step = 0.001
@@ -219,10 +228,10 @@ if __name__ == '__main__':
                                        PARAM_TO_INDEX, 'a', 'b',
                                        start_eq, up_n, down_n, left_n, right_n,
                                        up_step, down_step, left_step, right_step)
-        sf_grid = get_saddle_foci_grid(eq_grid, up_n, down_n, left_n, right_n)
-        inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n,)
+        sf_grid = get_saddle_foci_grid(eq_grid, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
+        inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
         params_x, params_y = generate_parameters((a, b), up_n, down_n, left_n, right_n,
-                                            up_step, down_step, left_step, right_step)
+                                                 up_step, down_step, left_step, right_step)
     else:
         print("Start saddle-focus was not found")
 
@@ -235,14 +244,14 @@ if __name__ == '__main__':
     #             print(f"Node ({i}, {j}) | {index} | Init {inits[index * 3 + 0], inits[index * 3 + 1], inits[index * 3 + 2]} "
     #                   f"for equilibrium {sf_grid[j][i].coordinates} with parameters {params_x[index], params_y[index]}")
 
-    # np.savez(
-    #     'inits.npz',
-    #     inits=inits,
-    #     nones=nones,
-    #     alphas=params_x,
-    #     betas=params_y,
-    #     up_n=up_n,
-    #     down_n=down_n,
-    #     left_n=left_n,
-    #     right_n=right_n
-    # )
+    np.savez(
+        'inits1.npz',
+        inits=inits,
+        nones=nones,
+        alphas=params_x,
+        betas=params_y,
+        up_n=up_n,
+        down_n=down_n,
+        left_n=left_n,
+        right_n=right_n
+    )

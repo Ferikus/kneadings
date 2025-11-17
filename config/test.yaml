@@ -18,15 +18,15 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 200
-    right_n: 200
+    left_n: 5
+    right_n: 5
     left_step: 0.001
     right_step: 0.001
     name: a
     caption: \alpha
   second:
-    down_n: 100
-    up_n: 300
+    down_n: 5
+    up_n: 5
     down_step: 0.001
     up_step: 0.001
     name: b

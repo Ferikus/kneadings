@@ -18,17 +18,17 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 220
-    right_n: 220
-    left_step: 0.00005
-    right_step: 0.00005
+    left_n: 440
+    right_n: 440
+    left_step: 0.000025
+    right_step: 0.000025
     name: a
     caption: \alpha
   second:
-    down_n: 220
-    up_n: 220
-    down_step: 0.00005
-    up_step: 0.00005
+    down_n: 440
+    up_n: 440
+    down_step: 0.000025
+    up_step: 0.000025
     name: b
     caption: \beta
 # name of the task to perform
@@ -41,7 +41,7 @@ kneadings_fbpo:
   n: 50000
   stride: 1
   kneadings_start: 0
-  kneadings_end: 6
+  kneadings_end: 1
 # information for saving files
 # "directory": where save it
 # "mask": what is the prefix
@@ -52,8 +52,8 @@ kneadings_fbpo:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/"
-  mask: h1_vicinity_7
-  useTimestamp: file
+  mask: h1_vicinity_2
+  useTimestamp: ignore
   imageExtension: png
 # some functions might use additional keyword-arguments
 # we can pass them through "misc" dictionary
@@ -66,7 +66,7 @@ misc:
     b: 2
     r: 3
   start_eq: [0.0, 2.30956058, 4.75652024]
-  init_res: h1_vicinity_2_2025-10-04_16-48-29.npz
+  init_res: h1_vicinity_2_updated_2025-11-16_16-36-23 #  h1_vicinity_2_2025-10-04_16-48-29
   threads_per_block: 512
   plot_params:
     font_size: 15
