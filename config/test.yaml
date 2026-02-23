@@ -8,6 +8,11 @@ defaultSystem:
   a: -2.911209192326542
   b: -1.612684228842761
   r: 1.0
+  param_to_index:
+    w: 0
+    a: 1
+    b: 2
+    r: 3
 # grid describes parameter sweeps
 # it must have either "first" AND "second" keys (biparametric),
 # or "first" only (single parameter)
@@ -23,25 +28,32 @@ grid:
     left_step: 0.001
     right_step: 0.001
     name: a
-    caption: \alpha
+    caption: alpha
   second:
     down_n: 5
     up_n: 5
     down_step: 0.001
     up_step: 0.001
     name: b
-    caption: \beta
+    caption: beta
 # name of the task to perform
 task: kneadings_fbpo
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
+sf_grid:
+  start_eq: [0.0, 2.30956058, 4.75652024]
+  input_data:
 kneadings_fbpo:
   dt: 0.01
   n: 50000
   stride: 1
   kneadings_start: 0
   kneadings_end: 7
+  input_data:
+route:
+  start_pt:
+  end_pt:
 # information for saving files
 # "directory": where save it
 # "mask": what is the prefix
@@ -60,13 +72,5 @@ output:
 # "init_res": file name of the init stage result which is to be reused (without .npz)
 # - "ignore": go through init stage from scratch
 misc:
-  param_to_index:
-    w: 0
-    a: 1
-    b: 2
-    r: 3
-  start_eq: [0.0, 2.30956058, 4.75652024]
-  init_res: ignore
-  threads_per_block: 512
   plot_params:
-    font_size: 15
+    font_size: 20

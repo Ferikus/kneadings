@@ -5,9 +5,14 @@
 # these parameters first
 defaultSystem:
   w: 0.0
-  a: -2.907309192326542
-  b: -1.623684228842761
+  a: -2.911209192326542
+  b: -1.612684228842761
   r: 1.0
+  param_to_index:
+    w: 0
+    a: 1
+    b: 2
+    r: 3
 # grid describes parameter sweeps
 # it must have either "first" AND "second" keys (biparametric),
 # or "first" only (single parameter)
@@ -18,30 +23,37 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 100
-    right_n: 100
-    left_step: 0.000001
-    right_step: 0.000001
+    left_n: 300
+    right_n: 300
+    left_step: 0.0000001
+    right_step: 0.0000001
     name: a
-    caption: \alpha
+    caption: alpha
   second:
-    down_n: 100
-    up_n: 100
-    down_step: 0.000001
-    up_step: 0.000001
+    down_n: 300
+    up_n: 300
+    down_step: 0.0000001
+    up_step: 0.0000001
     name: b
-    caption: \beta
+    caption: beta
 # name of the task to perform
 task: kneadings_fbpo
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
+sf_grid:
+  start_eq: [0., 2.309560584015542, 4.756520197312062]
+  input_data:
 kneadings_fbpo:
   dt: 0.01
   n: 50000
   stride: 1
   kneadings_start: 0
-  kneadings_end: 1
+  kneadings_end: 0
+  input_data:
+route:
+  start_pt:
+  end_pt:
 # information for saving files
 # "directory": where save it
 # "mask": what is the prefix
@@ -52,21 +64,13 @@ kneadings_fbpo:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/"
-  mask: h1_vicinity_closeup
-  useTimestamp: file
+  mask: h1_vicinity_closeup_1
+  useTimestamp: ignore
   imageExtension: png
 # some functions might use additional keyword-arguments
 # we can pass them through "misc" dictionary
 # "init_res": file name of the init stage result which is to be reused (without .npz)
 # - "ignore": go through init stage from scratch
 misc:
-  param_to_index:
-    w: 0
-    a: 1
-    b: 2
-    r: 3
-  start_eq: [0.0, 2.30999808834901,  4.766227891399033]
-  init_res: ignore
-  threads_per_block: 512
   plot_params:
-    font_size: 15
+    font_size: 20

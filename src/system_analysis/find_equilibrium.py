@@ -6,8 +6,8 @@ np.set_printoptions(precision=15)
 
 if __name__ == "__main__":
     w = 0.0
-    a = -2.907309192326542
-    b = -1.623684228842761
+    a = -2.6
+    b = -1.9
     r = 1.0
 
     start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)

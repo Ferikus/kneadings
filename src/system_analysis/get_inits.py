@@ -1,37 +1,44 @@
 import numpy as np
-import lib.eq_finder.systems_fun as sf
-import lib.eq_finder.SystOsscills as so
+import multiprocessing as mp
+from functools import partial
 import scipy
 
+import lib.eq_finder.systems_fun as sf
+import lib.eq_finder.SystOsscills as so
 from src.cuda_sweep.sweep_fbpo import PARAM_TO_INDEX
 
-# BETTER_PRECISION = sf.PrecisionSettings(zeroImagPartEps=1e-20,
-#                                         zeroRealPartEps=1e-20,
-#                                         clustDistThreshold=1e-14,
-#                                         separatrixShift=1e-14,
-#                                         separatrix_rTol=1e-20,
-#                                         separatrix_aTol=1e-20,
-#                                         marginBorder=0
-#                                         )
 
-
-def find_equilibrium_by_guess(rhs, jac, initial_guess=np.zeros(3), tol=1e-14):
+def find_equilibrium_by_guess(rhs, jac, initial_guess=np.zeros(3), tol=1e-12):
     """Находит состояние равновесия системы для заданных параметров."""
     initial_guess = np.asarray(initial_guess)
 
-    # result = scipy.optimize.root(
-    #     rhs,
-    #     initial_guess,
-    #     method='krylov',
-    #     options={'xtol': tol}  # 'jac_options': method
-    # )
+    # Метод HYBR
     result = scipy.optimize.root(
         rhs,
         initial_guess,
         jac=jac,
-        method='lm',
-        options={'xtol': tol}
+        method='hybr',
+        options={'xtol': tol,     # изменение решения между итерациями
+                 'factor': 0.01,  # параметр для начального шага маленький, предотвращает прыжки к другим решениям
+                 'maxfev': 1000,  # максимальное число вычислений функции, достаточно для сходимости из близкой точки
+                 'diag': None     # без масштабирования для протягивания
+        }
     )
+
+    # Метод LM (Левенберг-Марквардт)
+    # result = scipy.optimize.root(
+    #     rhs,
+    #     initial_guess,
+    #     jac=jac,
+    #     method='lm',
+    #     options={'ftol': tol,      # невязка
+    #              'xtol': tol,      # изменение решения между итерациями
+    #              'gtol': tol,      # градиент
+    #              'factor': 0.001,  # параметр для начального шага маленький, предотвращает прыжки к другим решениям
+    #              'diag': None,     # без масштабирования для протягивания
+    #              'maxiter': 1000}
+    # )
+
     if not result.success:
         return None
 
@@ -66,8 +73,8 @@ def continue_equilibrium(rhs, jac, get_params, set_params, param_to_index, param
     deltas.sort(key=lambda delta: abs(delta[0]) + abs(delta[1]))
 
     params = get_params()
-    param_x = params[param_to_index[param_x_name]]
-    param_y = params[param_to_index[param_y_name]]
+    param_x = float(params[param_to_index[param_x_name]])
+    param_y = float(params[param_to_index[param_y_name]])
 
     # находим с.р. в каждой точке
     for di, dj in deltas:
@@ -96,9 +103,9 @@ def continue_equilibrium(rhs, jac, get_params, set_params, param_to_index, param
 
         if eq_obj is not None:
             grid[curr_j][curr_i] = eq_obj
-            print(
-                f"Node ({curr_i}, {curr_j}) | Equilibrium {eq_obj.coordinates} was found "
-                f"with parameters ({curr_param_x:.3f}, {curr_param_y:.3f})")
+            # print(
+            #     f"Node ({curr_i}, {curr_j}) | Equilibrium {eq_obj.coordinates} was found "
+            #     f"with parameters ({curr_param_x:.3f}, {curr_param_y:.3f})")
         else:
             print(
                 f"Node ({curr_i}, {curr_j}) | No equilibrium was found "
@@ -107,20 +114,120 @@ def continue_equilibrium(rhs, jac, get_params, set_params, param_to_index, param
     return grid
 
 
-def get_saddle_foci_grid(grid, up_n, down_n, left_n, right_n, ps: sf.PrecisionSettings):
-    """Составляет сетку седло-фокусов по сетке состояний равновесия"""
-    print("Filling up saddle-foci grid...")
-    sf_grid = [[None for _ in range(len(grid[0]))] for _ in range(len(grid))]
+def process_grid_cell(delta, rhs, jac, get_params, set_params, param_to_index, param_x_name, param_y_name,
+                      up_step, down_step, left_step, right_step, start_row, start_col, rows, cols, grid):
+    """Обрабатывает одну ячейку сетки"""
+    di, dj = delta
+
+    # Получаем текущие параметры
+    params = get_params()
+    param_x = params[param_to_index[param_x_name]]
+    param_y = params[param_to_index[param_y_name]]
+
+    curr_i = start_col + di
+    curr_j = start_row + dj
+
+    # Проверяем, что координаты в пределах сетки
+    if not (0 <= curr_i < cols and 0 <= curr_j < rows):
+        return (curr_i, curr_j, None)
+
+    dx = di * (up_step if di > 0 else down_step)
+    dy = dj * (right_step if dj > 0 else left_step)
+
+    curr_param_x = param_x + dx
+    curr_param_y = param_y + dy
+
+    set_params({param_x_name: curr_param_x, param_y_name: curr_param_y})
+
+    # Ищем соседей для начального приближения
+    neighbors = []
+    for ni, nj in [(curr_i - 1, curr_j), (curr_i + 1, curr_j),
+                   (curr_i, curr_j - 1), (curr_i, curr_j + 1)]:
+        if 0 <= ni < cols and 0 <= nj < rows and grid[nj][ni] is not None:
+            neighbors.append(grid[nj][ni].coordinates)
+
+    eq_obj = None
+    for guess in neighbors:
+        eq_obj = find_equilibrium_by_guess(rhs, jac, initial_guess=guess)
+        if eq_obj is not None:
+            break
+
+    if eq_obj is not None:
+        print(f"Node ({curr_i}, {curr_j}) | Equilibrium {eq_obj.coordinates} was found "
+              f"with parameters ({curr_param_x:.3f}, {curr_param_y:.3f})")
+        return (curr_i, curr_j, eq_obj)
+    else:
+        print(f"Node ({curr_i}, {curr_j}) | No equilibrium was found "
+              f"with parameters ({curr_param_x:.3f}, {curr_param_y:.3f})")
+        return (curr_i, curr_j, None)
+
+
+def continue_equilibrium_mp(rhs, jac, get_params, set_params, param_to_index, param_x_name, param_y_name, start_eq_coords,
+                            up_n, down_n, left_n, right_n, up_step, down_step, left_step, right_step):
+    """Продолжает состояние равновесия по сетке параметров.
+    Последовательно выполняет каждый слой, параллельно вычисляя все ячейки в слое"""
+
+    rows = up_n + down_n + 1
+    cols = left_n + right_n + 1
+    grid = [[None for _ in range(cols)] for _ in range(rows)]
+
+    start_row, start_col = down_n, left_n
+    start_eq_obj = sf.getEquilibriumInfo(start_eq_coords, jac)
+    grid[down_n][left_n] = start_eq_obj
+
+    max_layers = max(up_n + down_n, left_n + right_n)
+
+    # создаем partial функцию с фиксированными аргументами
+    process_cell_partial = partial(
+        process_grid_cell,
+        rhs=rhs, jac=jac, get_params=get_params, set_params=set_params, param_to_index=param_to_index,
+        param_x_name=param_x_name, param_y_name=param_y_name,
+        up_step=up_step, down_step=down_step, left_step=left_step, right_step=right_step,
+        start_row=start_row, start_col=start_col, rows=rows, cols=cols, grid=grid
+    )
+
+    pool = mp.Pool(processes=mp.cpu_count())
+    for layer in range(1, max_layers + 1):
+        deltas = []
+        for dj in range(-down_n, up_n + 1):
+            for di in range(-left_n, right_n + 1):
+                if abs(di) + abs(dj) == layer:
+                    curr_i = start_col + di
+                    curr_j = start_row + dj
+                    if 0 <= curr_i < cols and 0 <= curr_j < rows and grid[curr_j][curr_i] is None:
+                        deltas.append((di, dj))
+
+        # параллельно обрабатываем все ячейки текущего слоя
+        results = pool.map(process_cell_partial, deltas)
+
+        # обновляем сетку
+        for curr_i, curr_j, eq_obj in results:
+            if 0 <= curr_i < cols and 0 <= curr_j < rows:
+                grid[curr_j][curr_i] = eq_obj
+
+    return grid
+
+
+def get_eq_type_grid(grid, up_n, down_n, left_n, right_n, eq_type_condition, ps: sf.PrecisionSettings):
+    """Составляет сетку с конкретным типом состояния равновесия по сетке всех типов состояний равновесия"""
+    print("Filling up equilibrium type grid...")
+    eq_type_grid = [[None for _ in range(len(grid[0]))] for _ in range(len(grid))]
 
     for j in range(up_n + down_n + 1):
         for i in range(left_n + right_n + 1):
-            if grid[j][i] is not None and sf.is3DSaddleFocusWith1dU(grid[j][i], ps):
-                sf_grid[j][i] = grid[j][i]
-            #     print(f"{i + j * (left_n + right_n + 1)} {i, j} -- saddle-focus")
+            # if grid[j][i] is not None and eq_type_condition(grid[j][i], ps):
+            #     eq_type_grid[j][i] = grid[j][i]
+            if grid[j][i] is not None:
+                if eq_type_condition(grid[j][i], ps):
+                    eq_type_grid[j][i] = grid[j][i]
+                    # print(f"Layer {i + j * (left_n + right_n + 1)} | {i, j} => Equilibrium")
+                # else:
+                #     print(f"Layer {i + j * (left_n + right_n + 1)} | {i, j} => "
+                #           f"Condition is not met. Equilibrium eigenvalues: {grid[j][i].getEqType(ps)}")
             # else:
-            #     print(f"{i + j * (left_n + right_n + 1)} {i, j} -- none")
+            #     print(f"Layer {i + j * (left_n + right_n + 1)} | {i, j} => None")
 
-    return sf_grid
+    return eq_type_grid
 
 
 def find_inits_for_equilibrium_grid(sf_grid, dim, up_n, down_n, left_n, right_n, ps: sf.PrecisionSettings):
@@ -183,27 +290,6 @@ if __name__ == '__main__':
     b = -1.623684228842761
     r = 1.0
 
-    # start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
-
-    # # поиск стартового седло-фокуса
-    # bounds = [(-0.1, 2 * np.pi + 0.1)] * 2
-    # borders = [(-1e-15, 2 * np.pi + 1e-15)] * 2
-    #
-    # # первые две функции -- общая система, вторые две -- в которой ищем с.р., дальше функция приведения
-    # equilibria = sf.findEquilibria(lambda psis: start_sys.getReducedSystem(psis), lambda psis: start_sys.getReducedSystemJac(psis),
-    #                                lambda psis: start_sys.getRestriction(psis), lambda psis: start_sys.getRestrictionJac(psis),
-    #                                lambda phi: np.concatenate([[0.], phi]), bounds, borders,
-    #                                sf.ShgoEqFinder(1000, 1, 1e-10),
-    #                                sf.STD_PRECISION)
-    #
-    # start_eq = None
-    # for eq in equilibria:  # перебираем все с.р., которые были найдены
-    #     print(f"{sf.is3DSaddleFocusWith1dU(eq, sf.STD_PRECISION)} at {eq.coordinates}")
-    #     if sf.is3DSaddleFocusWith1dU(eq, sf.STD_PRECISION):
-    #         start_eq = np.array(eq.coordinates)
-    #         print(f"Starting with saddle-focus {start_eq.round(4)} with parameters ({w:.3f}, {a:.3f}, {b:.3f}, {r:.3f})")
-    #         break
-
     # start_eq = [0.0, 2.30956058, 4.75652024]
     start_eq = [0., 2.30999808834901,  4.766227891399033]
 
@@ -228,7 +314,7 @@ if __name__ == '__main__':
                                        PARAM_TO_INDEX, 'a', 'b',
                                        start_eq, up_n, down_n, left_n, right_n,
                                        up_step, down_step, left_step, right_step)
-        sf_grid = get_saddle_foci_grid(eq_grid, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
+        sf_grid = get_eq_type_grid(eq_grid, up_n, down_n, left_n, right_n, sf.has1DUnstable, sf.STD_PRECISION)
         inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
         params_x, params_y = generate_parameters((a, b), up_n, down_n, left_n, right_n,
                                                  up_step, down_step, left_step, right_step)

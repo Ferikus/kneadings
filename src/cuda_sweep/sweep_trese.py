@@ -1,6 +1,6 @@
 import numpy as np
 from numba import cuda
-from src.mapping.convert import decimal_to_number_system
+from src.plotting.convert import convert_heavy_tail_to_sequence
 
 DIM = 3
 THREADS_PER_BLOCK = 512
@@ -231,7 +231,7 @@ if __name__ == "__main__":
         j = idx % sweep_size
 
         kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        kneading_symbolic = decimal_to_number_system(kneading_weighted_sum, 2)
+        kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 2, max_kneadings)
 
         print(f"a: {a_start + i * (a_end - a_start) / (sweep_size - 1):.6f}, "
               f"b: {b_start + j * (b_end - b_start) / (sweep_size - 1):.6f} => "

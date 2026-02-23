@@ -1,6 +1,6 @@
 import numpy as np
 from numba import cuda
-from src.mapping.convert import decimal_to_number_system
+from src.plotting.convert import convert_heavy_tail_to_sequence
 
 PARAM_TO_INDEX = {
     'w': 0,
@@ -16,8 +16,9 @@ THREADS_PER_BLOCK = 512
 INFINITY = 10
 
 KneadingDoNotEndError = -0.1
-InfinityError = -0.2
-NoInitFound = -0.3
+InfinityError = -0.20
+InEquilibriumError = -0.21
+NoInitFoundError = -0.3
 
 
 @cuda.jit(device=True)
@@ -209,26 +210,46 @@ def kneading_evaluator(state_curr, kneading_index, kneadings_end, kneadings_weig
 
 @cuda.jit(device=True)
 def get_coeffs_by_domain_num(domain_num, coeffs):
+    # if domain_num == 0:
+    #     coeffs[0] = np.pi ** 2
+    #     coeffs[1] = -0.5 * np.pi ** 2
+    #     coeffs[2] = 0.0
+    #     coeffs[3] = 0.0
+    # elif domain_num == 1:
+    #     coeffs[0] = -0.5 * np.pi ** 2
+    #     coeffs[1] = 0.0
+    #     coeffs[2] = -0.5 * np.pi ** 2
+    #     coeffs[3] = np.pi ** 3
+    # elif domain_num == 2:
+    #     coeffs[0] = 0.0
+    #     coeffs[1] = -0.5 * np.pi ** 2
+    #     coeffs[2] = np.pi ** 2
+    #     coeffs[3] = -np.pi ** 3
+    # elif domain_num == 3:
+    #     coeffs[0] = -0.5 * np.pi ** 2
+    #     coeffs[1] = np.pi ** 2
+    #     coeffs[2] = -0.5 * np.pi ** 2
+    #     coeffs[3] = 0.0
     if domain_num == 0:
-        coeffs[0] = np.pi ** 2
-        coeffs[1] = -0.5 * np.pi ** 2
-        coeffs[2] = 0.0
-        coeffs[3] = 0.0
+        coeffs[0] = 1.04187071692464
+        coeffs[1] = -0.242406134831432
+        coeffs[2] = -0.557058447261778
+        coeffs[3] = 1.75005072553774
     elif domain_num == 1:
-        coeffs[0] = -0.5 * np.pi ** 2
-        coeffs[1] = 0.0
-        coeffs[2] = -0.5 * np.pi ** 2
-        coeffs[3] = np.pi ** 3
+        coeffs[0] = -0.242406134831432
+        coeffs[1] = -0.557058447261777
+        coeffs[2] = -0.242406134831432
+        coeffs[3] = 3.27313339028078
     elif domain_num == 2:
-        coeffs[0] = 0.0
-        coeffs[1] = -0.5 * np.pi ** 2
-        coeffs[2] = np.pi ** 2
-        coeffs[3] = -np.pi ** 3
+        coeffs[0] = -0.557058447261779
+        coeffs[1] = -0.242406134831431
+        coeffs[2] = 1.04187071692464
+        coeffs[3] = -3.27313339028078
     elif domain_num == 3:
-        coeffs[0] = -0.5 * np.pi ** 2
-        coeffs[1] = np.pi ** 2
-        coeffs[2] = -0.5 * np.pi ** 2
-        coeffs[3] = 0.0
+        coeffs[0] = -0.242406134831431
+        coeffs[1] = 1.04187071692464
+        coeffs[2] = -0.242406134831431
+        coeffs[3] = -1.75005072553774
 
 
 @cuda.jit(device=True)
@@ -268,6 +289,8 @@ def make_integrator_rk4(event_condition, kneading_encoder):
     def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end):
         """Calculates kneadings during integration"""
         y_prev = cuda.local.array(DIM_REDUCED, dtype=np.float64)
+        rhs = cuda.local.array(DIM_REDUCED, dtype=np.float64)
+
         for k in range(DIM_REDUCED):
             y_prev[k] = y_curr[k]
 
@@ -283,10 +306,14 @@ def make_integrator_rk4(event_condition, kneading_encoder):
                 if y_curr[k] > INFINITY or y_curr[k] < -INFINITY:
                     return InfinityError
 
+            # reduced_rhs(params, y_curr, rhs)
+            # if abs(rhs[0]) < 1e-6 and abs(rhs[1]) < 1e-6 and abs(rhs[2]) < 1e-6:
+            #     return InEquilibriumError
+
             if event_condition(params, y_prev, y_curr):
 
                 if kneading_index >= kneadings_start:
-                    kneadings_weighted_sum = kneading_encoder(y_curr, kneading_index, kneadings_end,kneadings_weighted_sum)
+                    kneadings_weighted_sum = kneading_encoder(y_curr, kneading_index, kneadings_end, kneadings_weighted_sum)
 
                 kneading_index += 1
 
@@ -332,7 +359,7 @@ def make_sweep_threads(event_condition, kneading_encoder):
             for i in range(len(nones)):
                 if idx == nones[i]:
                     is_in_nones = True
-                    kneadings_weighted_sum_set[idx] = -0.3
+                    kneadings_weighted_sum_set[idx] = NoInitFoundError
                     break
             if is_in_nones == False:
                 init = cuda.local.array(DIM_REDUCED, dtype=np.float64)
@@ -397,12 +424,12 @@ def sweep(
     # set up for integrator
 
     # set 1
-    event_condition = event_avg_face_dist_deriv_max
-    kneading_encoder = kneading_evaluator
+    # event_condition = event_avg_face_dist_deriv_max
+    # kneading_encoder = kneading_evaluator
 
     # set 2
-    # event_condition = event_cross_plane
-    # kneading_encoder = kneading_evaluator
+    event_condition = event_cross_plane
+    kneading_encoder = kneading_evaluator
 
     # call CUDA kernel
     sweep_threads = make_sweep_threads(event_condition, kneading_encoder)
@@ -450,8 +477,6 @@ if __name__ == "__main__":
 
     # default parameter values
     w = 0.0
-    # a = -2.67
-    # b = -1.61268422884276
     a = -2.907273192326542
     b = -1.623684228842761
     r = 1.0
@@ -485,7 +510,7 @@ if __name__ == "__main__":
     print("Results:")
     for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
         kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        kneading_symbolic = decimal_to_number_system(kneading_weighted_sum, 4)
+        kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 4, max_kneadings)
 
         print(f"a: {params_x[idx]:.9f}, "
               f"b: {params_y[idx]:.9f} => "

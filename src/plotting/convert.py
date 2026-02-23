@@ -8,14 +8,6 @@ def decimal_to_number_system(num, system_num):
     integer_part = int(num)
     fractional_part = num - integer_part
 
-    # binary_integer = ""
-    # if integer_part == 0:
-    #     binary_integer = ""
-    # else:
-    #     while integer_part > 0:
-    #         binary_integer = str(integer_part % 2) + binary_integer
-    #         integer_part //= 2
-
     binary_fractional = ""
     while fractional_part > 0 and len(binary_fractional) < 10:
         fractional_part *= system_num
@@ -23,9 +15,17 @@ def decimal_to_number_system(num, system_num):
         binary_fractional += str(bit)
         fractional_part -= bit
 
-    # return binary_integer + binary_fractional
-    return binary_fractional[::-1]
-    # reverse string to put it in the right order because of heavy-tail
+    return binary_fractional
+
+
+def convert_heavy_tail_to_sequence(num, system_num, kneading_len):
+    """Converts heavy-tailed kneading invariant to kneading sequence"""
+    sequence = decimal_to_number_system(num, system_num)
+    if sequence.isdigit():
+        sequence = sequence[::-1]
+        if len(sequence) < kneading_len:
+            sequence += '0' * (kneading_len - len(sequence))
+    return sequence
 
 
 def binary_to_decimal(binary_str):
