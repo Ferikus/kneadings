@@ -41,7 +41,7 @@ def plot_target_attractors_sepbif(config, views, saving_directory, target_pts, c
     default_w = float(config['defaultSystem']['w'])
     default_r = float(config['defaultSystem']['r'])
 
-    kneadings_dict = config['kneadings_fbpo']
+    kneadings_dict = config['kneadings']
     dt = kneadings_dict['dt']
     n = kneadings_dict['n']
     kneadings_start = kneadings_dict['kneadings_start']
@@ -84,10 +84,9 @@ def plot_target_attractors_sepbif(config, views, saving_directory, target_pts, c
         )
 
 
-def map_out_sepbif_route_on_kneadings_set(config, kneadings_data, views):
+def map_out_sepbif_route_on_kneadings_set(config):
     """Строит бифуркации сепаратрис на фазовом портрете вдоль линии среза на карте нидингов"""
-    map_out_route_on_kneadings_set(config=config, kneadings_data=kneadings_data, views=views,
+    map_out_route_on_kneadings_set(config=config, output_suffix="sepbif_analysis",
                                    get_target_points_func=get_target_points_sepbif,
                                    plot_target_attractors_func=plot_target_attractors_sepbif,
-                                   convert_func=convert_heavy_tail_to_sequence,
-                                   output_suffix="sepbif_analysis")
+                                   convert_func=convert_heavy_tail_to_sequence)

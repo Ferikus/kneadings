@@ -12,6 +12,7 @@ def get_kneadings_data(input_data_dir):
 
     input_data = h5py.File(input_data_dir, 'r')
     kneadings_data = input_data['kneadings_info']['kneadings_data']
+    mode_map_data = input_data['kneadings_info']['mode_map_data']
     inits = input_data['sf_grid_info']['inits']
     nones = input_data['sf_grid_info']['nones']
     config = yaml.safe_load(input_data.attrs['config'])
@@ -23,7 +24,24 @@ def get_kneadings_data(input_data_dir):
 
     kneadings_data = [idxs_x, idxs_y, params_x, params_y, kneadings]
 
-    return kneadings_data, inits, nones, config
+    return kneadings_data, mode_map_data, inits, nones, config
+
+
+def save_kneadings_data(h5py_outname, kneadings_data, mode_map_data, inits, nones, config):
+    """Saves all the results from kneadings computing stage"""
+    with h5py.File(h5py_outname, 'w') as main_folder:
+        kneadings_info = main_folder.create_group('kneadings_info')
+        kneadings_info.create_dataset('kneadings_data', data=kneadings_data)
+        kneadings_info.create_dataset('mode_map_data', data=mode_map_data)
+
+        sf_grid_info = main_folder.create_group('sf_grid_info')
+        # сохранить сетку седло-фокусов
+        sf_grid_info.create_dataset('inits', data=inits)
+        sf_grid_info.create_dataset('nones', data=nones)
+        # в эту же группу потом сохранять массив седлофокусов внутри подтетраэдра
+
+        config_string = yaml.dump(config)
+        main_folder.attrs['config'] = config_string
 
 
 def check_config_correspondence(prev_config, curr_config, task_names):

@@ -119,7 +119,6 @@ def process_grid_cell(delta, rhs, jac, get_params, set_params, param_to_index, p
     """Обрабатывает одну ячейку сетки"""
     di, dj = delta
 
-    # Получаем текущие параметры
     params = get_params()
     param_x = params[param_to_index[param_x_name]]
     param_y = params[param_to_index[param_y_name]]
@@ -127,7 +126,6 @@ def process_grid_cell(delta, rhs, jac, get_params, set_params, param_to_index, p
     curr_i = start_col + di
     curr_j = start_row + dj
 
-    # Проверяем, что координаты в пределах сетки
     if not (0 <= curr_i < cols and 0 <= curr_j < rows):
         return (curr_i, curr_j, None)
 
@@ -139,7 +137,6 @@ def process_grid_cell(delta, rhs, jac, get_params, set_params, param_to_index, p
 
     set_params({param_x_name: curr_param_x, param_y_name: curr_param_y})
 
-    # Ищем соседей для начального приближения
     neighbors = []
     for ni, nj in [(curr_i - 1, curr_j), (curr_i + 1, curr_j),
                    (curr_i, curr_j - 1), (curr_i, curr_j + 1)]:

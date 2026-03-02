@@ -28,23 +28,23 @@ grid:
     left_step: 0.0005
     right_step: 0.0005
     name: a
-    caption: alpha
+    caption: \alpha
   second:
     down_n: 600
     up_n: 60
     down_step: 0.0005
     up_step: 0.0005
     name: b
-    caption: beta
+    caption: \beta
 # name of the task to perform
-task: kneadings_fbpo
+task: kneadings
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
 sf_grid:
   start_eq: [0.0, 2.30956058, 4.75652024]
   input_data:
-kneadings_fbpo:
+kneadings:
   dt: 0.01
   n: 150000
   stride: 1
@@ -54,6 +54,7 @@ kneadings_fbpo:
 route:
   start_pt:
   end_pt:
+  only_map_flag: 0
 # information for saving files
 # "directory": where save it
 # "mask": what is the prefix
@@ -70,5 +71,38 @@ output:
 # some functions might use additional keyword-arguments
 # we can pass them through "misc" dictionary
 misc:
-  plot_params:
-    font_size: 20
+  plot_settings:
+    default:
+      lines.linewidth: 6
+      lines.color: black
+      lines.markersize: 16
+#      font.size: 26          # the default font size for text, given in points.
+      xtick.labelsize: 20    # font size of the x tick labels
+      ytick.labelsize: 20    # font size of the y tick labels
+      axes.titlesize: 26     # font size of the axes title
+      axes.labelsize: 26     # font size of the x and y labels
+#      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
+#      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
+      figure.dpi: 100
+      savefig.dpi: 300
+  views:
+    view_1:
+      elev: 60
+      azim: 160
+      roll: 0
+      xlim_left: 0
+      xlim_right: 3
+      ylim_left: 1.5
+      ylim_right: 4.5
+      zlim_left: 0
+      zlim_right: 6.14
+    view_2:
+      elev: 0
+      azim: 90
+      roll: 0
+      xlim_left: 0.5
+      xlim_right: 2.25
+      ylim_left: 1.5
+      ylim_right: 4.5
+      zlim_left: 3.5
+      zlim_right: 5

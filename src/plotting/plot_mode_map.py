@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
@@ -66,8 +67,10 @@ def set_mode_map_size(param_x_count, param_y_count):
     return size_x, size_y
 
 
-def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, font_size):
+def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings):
     """Строит карту режимов на основе таблицы данных нидингов"""
+    mpl.rcParams.update(plot_settings)
+
     idxs_x, idxs_y, params_x, params_y, kneadings = kneadings_data
 
     unique_params_x = np.unique(params_x)
@@ -87,9 +90,11 @@ def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_captio
                    vmin=-0.3,
                    vmax=1)
 
-    plt.xlabel(f'${param_x_caption}$', fontsize=font_size)
-    plt.ylabel(f'${param_y_caption}$', fontsize=font_size)
-    plt.tick_params(axis='x', labelsize=font_size * 0.75)
-    plt.tick_params(axis='y', labelsize=font_size * 0.75)
+    plt.xlabel(f'${param_x_caption}$')
+    plt.ylabel(f'${param_y_caption}$')
+    plt.tick_params(axis='x',)
+    plt.tick_params(axis='y')
+    plt.locator_params(axis='x', nbins=5)
+    plt.locator_params(axis='y', nbins=5)
 
     return fig

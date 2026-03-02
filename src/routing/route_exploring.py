@@ -1,9 +1,13 @@
 import os
+import datetime
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from ast import literal_eval
 
+from lib.computation_template.workers_utils import makeFinalOutname
 from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
 from src.system_analysis.thetrahedron import *
+from src.computing.engines_kneadings_fbpo import save_kneadings_data, get_kneadings_data
 
 
 view_1 = {
@@ -74,41 +78,36 @@ def get_grid_points_along_line(data, pt1, pt2):
 
 def slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, save_dir):
     """Рисует карту режимов и выбранный маршрут"""
-    font_size = config['misc']['plot_params']['font_size']
-    accent_color = 'white'
-    lwidth = 3
-    size = 100
 
     grid_dict = config['grid']
     param_x_caption = grid_dict['first']['caption']
     param_y_caption = grid_dict['second']['caption']
 
-    kneadings_dict = config['kneadings_fbpo']
+    kneadings_dict = config['kneadings']
     kneadings_start = kneadings_dict['kneadings_start']
     kneadings_end = kneadings_dict['kneadings_end']
     kneadings_len = kneadings_end - kneadings_start + 1
 
+    plot_settings = config['misc']['plot_settings']['default']
+    accent_color = 'white'
+
     def set_color_map():
         return set_random_color_map(4, kneadings_len)
-    plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, font_size)
+    plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings)
 
     # отрисовка среза
-    plt.plot([pt1[0], pt2[0]], [pt1[1], pt2[1]], linewidth=3, solid_capstyle='round', c='black')
+    plt.plot([pt1[0], pt2[0]], [pt1[1], pt2[1]], solid_capstyle='round', c='black')
 
     # отрисовка точек на срезе
     for coords in rep_pts_coords:
         rep_pt_x, rep_pt_y = coords
-        plt.scatter(rep_pt_x, rep_pt_y, marker='o', color=accent_color, linewidths=lwidth, edgecolor='black', s=size,
-                    zorder=3)
+        plt.scatter(rep_pt_x, rep_pt_y, marker='o', color=accent_color, linewidths=3, edgecolor='black', zorder=3)
 
-    plt.title(f"({param_x_caption}, {param_y_caption})-parameter sweep "
-              f"of [{kneadings_start + 1}-{kneadings_end + 1}] length", fontsize=font_size)
-    plt.xticks(fontsize=font_size)
-    plt.yticks(fontsize=font_size)
+    plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep "
+              f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")
     plt.tight_layout()
-    plt.savefig(f"{save_dir}/map.pdf", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{save_dir}/map.pdf", bbox_inches='tight')
     plt.show()
-    print(f"Map saved")
 
 
 def make_target_point(idxs_list, coords_list, idx, val):
@@ -123,15 +122,23 @@ def make_target_point(idxs_list, coords_list, idx, val):
     }
 
 
-def map_out_route_on_kneadings_set(config, kneadings_data, views, get_target_points_func,
-                                   plot_target_attractors_func, convert_func, output_suffix):
+def map_out_route_on_kneadings_set(config, output_suffix, get_target_points_func=None,
+                                   plot_target_attractors_func=None, convert_func=None):
     """General function for routing given kneading slice"""
+
+    kneadings_data, mode_map_data, inits, nones, _ = get_kneadings_data(config['kneadings']['input_data'])
+    only_map_flag = config['route']['only_map_flag']
 
     pt1 = tuple(map(float, literal_eval(config['route']['start_pt'])))
     pt2 = tuple(map(float, literal_eval(config['route']['end_pt'])))
 
-    saving_directory = os.path.join(config['output']['directory'], f"{config['output']['mask']}_{output_suffix}")
-    os.makedirs(saving_directory, exist_ok=True)
+    output_dir = config['output']['directory']
+    start_time = datetime.datetime.today().strftime('%Y-%m-%d_%H-%M-%S')
+    saving_dir = os.path.join(output_dir, f"{config['output']['mask']}_{output_suffix}_{start_time}")
+    os.makedirs(saving_dir, exist_ok=True)
+
+    views_dict = config['misc']['views']
+    views = list(views_dict.values())
 
     # сбор репрезентативных точек
     print("Getting representative points...")
@@ -140,8 +147,14 @@ def map_out_route_on_kneadings_set(config, kneadings_data, views, get_target_poi
 
     # отрисовка карты режимов
     print("Slicing the mode map...")
-    slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, saving_directory)
+    slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, saving_dir)
 
-    # генерация аттракторов для каждой точки
-    print("Plotting attractors for target points...")
-    plot_target_attractors_func(config, views, saving_directory, target_pts, convert_func)
+    if not only_map_flag:
+        # генерация аттракторов для каждой точки
+        print("Plotting attractors for target points...")
+        plot_target_attractors_func(config, views, saving_dir, target_pts, convert_func)
+
+    # дублирование hdf5 файла в saving_directory с обновлённым значением задачи route в конфиге
+    hdf5_outname = makeFinalOutname(config, {'targetDir': saving_dir}, "hdf5", start_time)
+    save_kneadings_data(hdf5_outname, kneadings_data, mode_map_data, inits, nones, config)
+    print("Dataset successfully saved")

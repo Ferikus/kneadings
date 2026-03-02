@@ -25,7 +25,12 @@ def get_target_points_attr(idxs, coords, vals):
 def plot_target_attractors_attr(config, views, saving_directory, plotting_data, convert_func):
     default_w = float(config['defaultSystem']['w'])
     default_r = float(config['defaultSystem']['r'])
-    kneadings_len = config['kneadings_fbpo']['kneadings_end'] - config['kneadings_fbpo']['kneadings_start'] + 1
+
+    kneadings_dict = config['kneadings']
+    kneadings_start = kneadings_dict['kneadings_start']
+    kneadings_end = kneadings_dict['kneadings_end']
+
+    kneadings_len = kneadings_end - kneadings_start + 1
 
     print("Generating phase portraits...")
 
@@ -52,10 +57,9 @@ def plot_target_attractors_attr(config, views, saving_directory, plotting_data, 
         )
 
 
-def map_out_attr_route_on_kneadings_set(config, kneadings_data, views):
+def map_out_attr_route_on_kneadings_set(config):
     """Строит бифуркации сепаратрис на фазовом портрете вдоль линии среза на карте нидингов"""
-    map_out_route_on_kneadings_set(config=config, kneadings_data=kneadings_data, views=views,
+    map_out_route_on_kneadings_set(config=config, output_suffix="attr_analysis",
                                    get_target_points_func=get_target_points_attr,
                                    plot_target_attractors_func=plot_target_attractors_attr,
-                                   convert_func=convert_heavy_tail_to_sequence,
-                                   output_suffix="attr_analysis")
+                                   convert_func=convert_heavy_tail_to_sequence,)

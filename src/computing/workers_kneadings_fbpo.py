@@ -1,20 +1,18 @@
 import numpy as np
-import h5py
 import time
 import datetime
 import matplotlib.pyplot as plt
-import yaml
 import io
 
 from lib.computation_template.workers_utils import register, makeFinalOutname
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 
-from src.computing.engines_kneadings_fbpo import get_kneadings_data, check_config_correspondence
+from src.computing.engines_kneadings_fbpo import get_kneadings_data, check_config_correspondence, save_kneadings_data
 from src.system_analysis.get_inits import (continue_equilibrium, continue_equilibrium_mp,
                                            get_eq_type_grid, find_inits_for_equilibrium_grid, generate_parameters)
-from src.plotting.convert import convert_heavy_tail_to_sequence
 from src.cuda_sweep.sweep_fbpo import sweep
+from src.plotting.convert import convert_heavy_tail_to_sequence
 from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
 
 registry = {
@@ -24,7 +22,7 @@ registry = {
 }
 
 
-@register(registry, 'init', 'kneadings_fbpo')
+@register(registry, 'init', 'kneadings')
 def init_kneadings_fbpo(config, timeStamp):
     def_sys_dict = config['defaultSystem']
     w = def_sys_dict['w']
@@ -48,7 +46,7 @@ def init_kneadings_fbpo(config, timeStamp):
     right_step = float(grid_dict['first']['right_step'])
 
     if input_data_path is not None:
-        kneadings_data, inits, nones, prev_config = get_kneadings_data(input_data_path)
+        kneadings_data, _, inits, nones, prev_config = get_kneadings_data(input_data_path)
         check_config_correspondence(prev_config, config, ('sf_grid',))
         _, _, params_x, params_y, _ = kneadings_data
     else:
@@ -76,7 +74,7 @@ def init_kneadings_fbpo(config, timeStamp):
     return {'inits': inits, 'nones': nones, 'params_x': params_x, 'params_y': params_y, 'targetDir': 'output'}
 
 
-@register(registry, 'worker', 'kneadings_fbpo')
+@register(registry, 'worker', 'kneadings')
 def worker_kneadings_fbpo(config, initResult, timeStamp):
     def_sys_dict = config['defaultSystem']
     w = def_sys_dict['w']
@@ -95,7 +93,7 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
     param_x_name = grid_dict['first']['name']
     param_y_name = grid_dict['second']['name']
 
-    kneadings_dict = config['kneadings_fbpo']
+    kneadings_dict = config['kneadings']
     dt = kneadings_dict['dt']
     n = kneadings_dict['n']
     stride = kneadings_dict['stride']
@@ -144,11 +142,8 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
     return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set, 'kneadings_records': kneadings_records}
 
 
-@register(registry, 'post', 'kneadings_fbpo')
+@register(registry, 'post', 'kneadings')
 def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
-    plot_params_dict = config['misc']['plot_params']
-    font_size = plot_params_dict['font_size']
-
     grid_dict = config['grid']
     param_x_caption = grid_dict['first']['caption']
     left_n = grid_dict['first']['left_n']
@@ -157,7 +152,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     up_n = grid_dict['second']['up_n']
     down_n = grid_dict['second']['down_n']
 
-    kneadings_dict = config['kneadings_fbpo']
+    kneadings_dict = config['kneadings']
     kneadings_start = kneadings_dict['kneadings_start']
     kneadings_end = kneadings_dict['kneadings_end']
     kneadings_len = kneadings_end - kneadings_start + 1
@@ -166,6 +161,8 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     nones = initResult['nones']
     params_x = initResult['params_x']
     params_y = initResult['params_y']
+
+    plot_settings = config['misc']['plot_settings']['default']
 
     kneadings_weighted_sum_set = workerResult['kneadings_weighted_sum_set']
     kneadings_records = workerResult['kneadings_records']
@@ -185,9 +182,9 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
 
     def set_color_map():
         return set_random_color_map(4, kneadings_len)
-    fig = plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, font_size)
-    plt.title(f"({param_x_caption}, {param_y_caption})-parameter sweep "
-              f"of [{kneadings_start + 1}-{kneadings_end + 1}] length", fontsize=font_size)
+    fig = plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings)
+    plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep "
+              f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")  # , fontsize=font_size
 
     with io.BytesIO() as buff:
         fig.savefig(buff, format='raw')
@@ -198,19 +195,8 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
 
     # СОХРАНЕНИЕ
 
-    h5py_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
-    with h5py.File(h5py_outname, 'w') as main_folder:
-        kneadings_info = main_folder.create_group('kneadings_info')
-        kneadings_info.create_dataset('kneadings_data', data=kneadings_data)
-        kneadings_info.create_dataset('mode_map', data=mode_map_data)
-
-        sf_grid_info = main_folder.create_group('sf_grid_info')
-        sf_grid_info.create_dataset('inits', data=inits)
-        sf_grid_info.create_dataset('nones', data=nones)
-        # в эту же группу потом сохранять массив седлофокусов внутри подтетраэдра
-
-        config_string = yaml.dump(config)
-        main_folder.attrs['config'] = config_string
+    hdf5_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
+    save_kneadings_data(hdf5_outname, kneadings_data, mode_map_data, inits, nones, config)
     print("Dataset successfully saved")
 
     txt_outname = makeFinalOutname(config, initResult, "txt", startTime)
@@ -220,7 +206,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
 
     img_extension = config['output']['imageExtension']
     plot_outname = makeFinalOutname(config, initResult, img_extension, startTime)
-    plt.savefig(plot_outname, dpi=600, bbox_inches='tight')
+    plt.savefig(plot_outname, bbox_inches='tight')  # , dpi=600
     plt.close()
     print("Mode map successfully saved")
 
