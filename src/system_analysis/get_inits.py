@@ -3,9 +3,7 @@ import multiprocessing as mp
 from functools import partial
 
 import lib.eq_finder.systems_fun as sf
-import lib.eq_finder.SystOsscills as so
 from src.system_analysis.find_equilibrium import find_equilibrium_by_guess
-from src.cuda_sweep.sweep_fbpo import PARAM_TO_INDEX
 
 
 def continue_equilibrium(rhs, jac, get_params, set_params, param_to_index, param_x_name, param_y_name, start_eq_coords,
@@ -217,7 +215,7 @@ def find_inits_for_equilibrium_grid(sf_grid, dim, up_n, down_n, left_n, right_n,
     return inits, nones
 
 
-def generate_parameters(start_params, up_n, down_n, left_n, right_n,
+def generate_parameters(start_param_x, start_param_y, up_n, down_n, left_n, right_n,
                         up_step, down_step, left_step, right_step):
     """Генерирует массивы параметров для последующего подсчёта нидингов"""
     print("Generating parameters...")
@@ -231,70 +229,9 @@ def generate_parameters(start_params, up_n, down_n, left_n, right_n,
             da = (i - left_n) * (right_step if i > left_n else left_step)
             db = (j - down_n) * (up_step if j > down_n else down_step)
 
-            start_params_x[index] = start_params[0] + da
-            start_params_y[index] = start_params[1] + db
+            start_params_x[index] = start_param_x + da
+            start_params_y[index] = start_param_y + db
             # print(f"param1_{index} {i, j} {start_params_x[index]}")
             # print(f"param2_{index} {i, j} {start_params_y[index]}")
 
     return start_params_x, start_params_y
-
-
-if __name__ == '__main__':
-    w = 0
-    # a = -2.911209192326542
-    # b = -1.612684228842761
-    a = -2.907273192326542
-    b = -1.623684228842761
-    r = 1.0
-
-    # start_eq = [0.0, 2.30956058, 4.75652024]
-    start_eq = [0., 2.30999808834901,  4.766227891399033]
-
-    up_n = 1
-    down_n = 1
-    left_n = 1
-    right_n = 1
-
-    up_step = 0.001
-    down_step = 0.001
-    left_step = 0.001
-    right_step = 0.001
-
-    start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
-    reduced_rhs_wrapper = start_sys.getReducedSystem
-    reduced_jac_wrapper = start_sys.getReducedSystemJac
-    get_params = start_sys.getParams
-    set_params = start_sys.setParams
-
-    if start_eq is not None:
-        eq_grid = continue_equilibrium(reduced_rhs_wrapper, reduced_jac_wrapper, get_params, set_params,
-                                       PARAM_TO_INDEX, 'a', 'b',
-                                       start_eq, up_n, down_n, left_n, right_n,
-                                       up_step, down_step, left_step, right_step)
-        sf_grid = get_eq_type_grid(eq_grid, up_n, down_n, left_n, right_n, sf.has1DUnstable, sf.STD_PRECISION)
-        inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
-        params_x, params_y = generate_parameters((a, b), up_n, down_n, left_n, right_n,
-                                                 up_step, down_step, left_step, right_step)
-    else:
-        print("Start saddle-focus was not found")
-
-    # for j in range(up_n + down_n + 1):
-    #     for i in range(left_n + right_n + 1):
-    #         index = i + j * (left_n + right_n + 1)
-    #         if index in nones:
-    #             print(f"Node ({i}, {j}) | {index} | IS IN NONES")
-    #         else:
-    #             print(f"Node ({i}, {j}) | {index} | Init {inits[index * 3 + 0], inits[index * 3 + 1], inits[index * 3 + 2]} "
-    #                   f"for equilibrium {sf_grid[j][i].coordinates} with parameters {params_x[index], params_y[index]}")
-
-    np.savez(
-        'inits1.npz',
-        inits=inits,
-        nones=nones,
-        alphas=params_x,
-        betas=params_y,
-        up_n=up_n,
-        down_n=down_n,
-        left_n=left_n,
-        right_n=right_n
-    )

@@ -47,6 +47,12 @@ def init_kneadings_fbpo(config, timeStamp):
     left_step = float(grid_dict['first']['left_step'])
     right_n = int(grid_dict['first']['right_n'])
     right_step = float(grid_dict['first']['right_step'])
+    param_x_name = grid_dict['first']['name']
+    param_y_name = grid_dict['second']['name']
+
+    def_params = [w, a, b, r]
+    param_x = float(def_params[param_to_index[param_x_name]])
+    param_y = float(def_params[param_to_index[param_y_name]])
 
     if input_data_path is not None:
         kneadings_data, _, inits, nones, coeffs_set, prev_config = get_kneadings_data(input_data_path)
@@ -63,12 +69,12 @@ def init_kneadings_fbpo(config, timeStamp):
             start = time.time()
 
             start_eq_grid = continue_equilibrium(reduced_rhs, reduced_jac, get_params, set_params,
-                                           param_to_index, 'a', 'b',
-                                           start_eq, up_n, down_n, left_n, right_n,
-                                           up_step, down_step, left_step, right_step)
+                                                 param_to_index, param_x_name, param_y_name,
+                                                 start_eq, up_n, down_n, left_n, right_n,
+                                                 up_step, down_step, left_step, right_step)
             start_sf_grid = get_eq_type_grid(start_eq_grid, up_n, down_n, left_n, right_n, sf.has1DUnstable, sf.STD_PRECISION)
             inits, nones = find_inits_for_equilibrium_grid(start_sf_grid, 3, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
-            params_x, params_y = generate_parameters((a, b), up_n, down_n, left_n, right_n,
+            params_x, params_y = generate_parameters(param_x, param_y, up_n, down_n, left_n, right_n,
                                                      up_step, down_step, left_step, right_step)
 
             inner_sf = find_equilibrium_by_guess(reduced_rhs, reduced_jac, inner_sf_guess)
@@ -92,8 +98,6 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
     a = def_sys_dict['a']
     b = def_sys_dict['b']
     r = def_sys_dict['r']
-    def_params = [w, a, b, r]
-
     param_to_index = def_sys_dict['param_to_index']
 
     grid_dict = config['grid']
@@ -116,6 +120,8 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
     params_x = initResult['params_x']
     params_y = initResult['params_y']
     coeffs_set = initResult['coeffs_set']
+
+    def_params = [w, a, b, r]
 
     kneadings_weighted_sum_set = sweep(
         inits,
@@ -148,8 +154,8 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
         # print(f"a: {params_x[idx]:.15f}, "
         #       f"b: {params_y[idx]:.15f} => "
         #       f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
-        kneadings_records = (kneadings_records + f"a: {params_x[idx]:.15f}, "
-                                                 f"b: {params_y[idx]:.15f} => "
+        kneadings_records = (kneadings_records + f"{param_x_name}: {params_x[idx]:.15f}, "
+                                                 f"{param_y_name}: {params_y[idx]:.15f} => "
                                                  f"{kneading_symbolic} (Raw: {kneading_weighted_sum})\n")
 
     return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set, 'kneadings_records': kneadings_records}

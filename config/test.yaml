@@ -84,7 +84,7 @@ misc:
       axes.labelsize: 26     # font size of the x and y labels
 #      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
 #      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
-      figure.dpi: 100
+      figure.dpi: 300
       savefig.dpi: 300
   views:
     view_1:
