@@ -1,51 +1,11 @@
 import numpy as np
 import multiprocessing as mp
 from functools import partial
-import scipy
 
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
+from src.system_analysis.find_equilibrium import find_equilibrium_by_guess
 from src.cuda_sweep.sweep_fbpo import PARAM_TO_INDEX
-
-
-def find_equilibrium_by_guess(rhs, jac, initial_guess=np.zeros(3), tol=1e-12):
-    """Находит состояние равновесия системы для заданных параметров."""
-    initial_guess = np.asarray(initial_guess)
-
-    # Метод HYBR
-    result = scipy.optimize.root(
-        rhs,
-        initial_guess,
-        jac=jac,
-        method='hybr',
-        options={'xtol': tol,     # изменение решения между итерациями
-                 'factor': 0.01,  # параметр для начального шага маленький, предотвращает прыжки к другим решениям
-                 'maxfev': 1000,  # максимальное число вычислений функции, достаточно для сходимости из близкой точки
-                 'diag': None     # без масштабирования для протягивания
-        }
-    )
-
-    # Метод LM (Левенберг-Марквардт)
-    # result = scipy.optimize.root(
-    #     rhs,
-    #     initial_guess,
-    #     jac=jac,
-    #     method='lm',
-    #     options={'ftol': tol,      # невязка
-    #              'xtol': tol,      # изменение решения между итерациями
-    #              'gtol': tol,      # градиент
-    #              'factor': 0.001,  # параметр для начального шага маленький, предотвращает прыжки к другим решениям
-    #              'diag': None,     # без масштабирования для протягивания
-    #              'maxiter': 1000}
-    # )
-
-    if not result.success:
-        return None
-
-    eq_coords = result.x
-    eq_obj = sf.getEquilibriumInfo(eq_coords, jac)
-
-    return eq_obj
 
 
 def continue_equilibrium(rhs, jac, get_params, set_params, param_to_index, param_x_name, param_y_name, start_eq_coords,

@@ -40,11 +40,6 @@ def det4x4(m):
 
 
 def bary_expansion(pt):
-    """
-    globalPtCoords must be a 3d vector with 0 <= x <= y <= z <= 2pi, i.e. inside a CIR
-    returns an expansion of (globalPtCoords - center of mass) in barycentric coordinates
-    """
-
     pt_o = [0.] * 3
     pt_a = [0.] * 3
     pt_b = [0.] * 3

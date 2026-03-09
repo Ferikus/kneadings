@@ -9,8 +9,10 @@ import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 
 from src.computing.engines_kneadings_fbpo import get_kneadings_data, check_config_correspondence, save_kneadings_data
+from src.system_analysis.find_equilibrium import find_equilibrium_by_guess
 from src.system_analysis.get_inits import (continue_equilibrium, continue_equilibrium_mp,
                                            get_eq_type_grid, find_inits_for_equilibrium_grid, generate_parameters)
+from src.system_analysis.poincare_section import get_poincare_section_coeffs
 from src.cuda_sweep.sweep_fbpo import sweep
 from src.plotting.convert import convert_heavy_tail_to_sequence
 from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
@@ -33,6 +35,7 @@ def init_kneadings_fbpo(config, timeStamp):
 
     sf_grid_dict = config['sf_grid']
     start_eq = sf_grid_dict['start_eq']
+    inner_sf_guess = sf_grid_dict['inner_sf']
     input_data_path = sf_grid_dict['input_data']
 
     grid_dict = config['grid']
@@ -46,32 +49,40 @@ def init_kneadings_fbpo(config, timeStamp):
     right_step = float(grid_dict['first']['right_step'])
 
     if input_data_path is not None:
-        kneadings_data, _, inits, nones, prev_config = get_kneadings_data(input_data_path)
+        kneadings_data, _, inits, nones, coeffs_set, prev_config = get_kneadings_data(input_data_path)
         check_config_correspondence(prev_config, config, ('sf_grid',))
         _, _, params_x, params_y, _ = kneadings_data
     else:
         start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
-        reduced_rhs_wrapper = start_sys.getReducedSystem
-        reduced_jac_wrapper = start_sys.getReducedSystemJac
+        reduced_rhs = start_sys.getReducedSystem
+        reduced_jac = start_sys.getReducedSystemJac
         get_params = start_sys.getParams
         set_params = start_sys.setParams
 
         if start_eq is not None:
             start = time.time()
-            eq_grid = continue_equilibrium(reduced_rhs_wrapper, reduced_jac_wrapper, get_params, set_params,
+
+            start_eq_grid = continue_equilibrium(reduced_rhs, reduced_jac, get_params, set_params,
                                            param_to_index, 'a', 'b',
                                            start_eq, up_n, down_n, left_n, right_n,
                                            up_step, down_step, left_step, right_step)
-            sf_grid = get_eq_type_grid(eq_grid, up_n, down_n, left_n, right_n, sf.has1DUnstable, sf.STD_PRECISION)
-            inits, nones = find_inits_for_equilibrium_grid(sf_grid, 3, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
+            start_sf_grid = get_eq_type_grid(start_eq_grid, up_n, down_n, left_n, right_n, sf.has1DUnstable, sf.STD_PRECISION)
+            inits, nones = find_inits_for_equilibrium_grid(start_sf_grid, 3, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
             params_x, params_y = generate_parameters((a, b), up_n, down_n, left_n, right_n,
                                                      up_step, down_step, left_step, right_step)
+
+            inner_sf = find_equilibrium_by_guess(reduced_rhs, reduced_jac, inner_sf_guess)
+            if inner_sf is not None:
+                inner_sf = inner_sf.coordinates
+            coeffs_set = get_poincare_section_coeffs(inner_sf)
+
             end = time.time()
             print(f"Took {end - start}s ({datetime.timedelta(seconds=end - start)})")
         else:
-            raise Exception("Start saddle-focus was not found!")
+            raise ValueError("No start equilibrium given")
 
-    return {'inits': inits, 'nones': nones, 'params_x': params_x, 'params_y': params_y, 'targetDir': 'output'}
+    return {'inits': inits, 'nones': nones, 'params_x': params_x, 'params_y': params_y, 'coeffs_set': coeffs_set,
+            'targetDir': 'output'}
 
 
 @register(registry, 'worker', 'kneadings')
@@ -104,6 +115,7 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
     nones = initResult['nones']
     params_x = initResult['params_x']
     params_y = initResult['params_y']
+    coeffs_set = initResult['coeffs_set']
 
     kneadings_weighted_sum_set = sweep(
         inits,
@@ -122,7 +134,8 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
         n,
         stride,
         kneadings_start,
-        kneadings_end
+        kneadings_end,
+        coeffs_set
     )
 
     # print("Results:")
@@ -161,6 +174,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     nones = initResult['nones']
     params_x = initResult['params_x']
     params_y = initResult['params_y']
+    coeffs_set = initResult['coeffs_set']
 
     plot_settings = config['misc']['plot_settings']['default']
 
@@ -184,7 +198,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
         return set_random_color_map(4, kneadings_len)
     fig = plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings)
     plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep "
-              f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")  # , fontsize=font_size
+              f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")
 
     with io.BytesIO() as buff:
         fig.savefig(buff, format='raw')
@@ -196,7 +210,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     # СОХРАНЕНИЕ
 
     hdf5_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
-    save_kneadings_data(hdf5_outname, kneadings_data, mode_map_data, inits, nones, config)
+    save_kneadings_data(hdf5_outname, kneadings_data, mode_map_data, inits, nones, coeffs_set, config)
     print("Dataset successfully saved")
 
     txt_outname = makeFinalOutname(config, initResult, "txt", startTime)
@@ -206,7 +220,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
 
     img_extension = config['output']['imageExtension']
     plot_outname = makeFinalOutname(config, initResult, img_extension, startTime)
-    plt.savefig(plot_outname, bbox_inches='tight')  # , dpi=600
+    plt.savefig(plot_outname, bbox_inches='tight')
     plt.close()
     print("Mode map successfully saved")
 
