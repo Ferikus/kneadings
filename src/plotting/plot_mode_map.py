@@ -40,7 +40,7 @@ def set_random_color_map(system_dim, kneadings_len):
     special_colors = {
         -0.3: [0, 0, 0],            # NoInitFoundError  черный
         -0.20: [0.25, 0.25, 0.25],  # InfinityError  тёмно-серый
-        -0.21: [0.75, 0.75, 0.75],  # InEquilibriumError светло-серый
+        -0.21: [0.9, 0.9, 0.9],  # InEquilibriumError светло-серый
         -0.1: [1, 1, 1]             # KneadingDoNotEndError  белый
     }
 

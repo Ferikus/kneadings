@@ -326,9 +326,9 @@ def make_integrator_rk4(event_condition, kneading_encoder):
                 if y_curr[k] > INFINITY or y_curr[k] < -INFINITY:
                     return InfinityError
 
-            # reduced_rhs(params, y_curr, rhs)
-            # if abs(rhs[0]) < 1e-6 and abs(rhs[1]) < 1e-6 and abs(rhs[2]) < 1e-6:
-            #     return InEquilibriumError
+            reduced_rhs(params, y_curr, rhs)
+            if abs(rhs[0]) < 1e-8 and abs(rhs[1]) < 1e-8 and abs(rhs[2]) < 1e-8:
+                return InEquilibriumError
 
             if event_condition(params, y_prev, y_curr, misc):
 
