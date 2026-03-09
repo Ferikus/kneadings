@@ -11,6 +11,7 @@ PARAM_TO_INDEX = {
 
 DIM = 4
 DIM_REDUCED = DIM - 1
+PARAMS_COUNT = 4
 THREADS_PER_BLOCK = 512
 
 INFINITY = 10
@@ -20,6 +21,77 @@ InfinityError = -0.20
 InEquilibriumError = -0.21
 NoInitFoundError = -0.3
 
+
+##### System #####
+
+@cuda.jit(device=True)
+def full_rhs(params, phis, dphis):
+    """Calculates the right-hand side of the full system"""
+    w, a, b, r = params
+    for i in range(4):
+        dphis[i] = w
+        for j in range(4):
+            dphis[i] += 0.25 * (-np.sin(phis[i] - phis[j] + a) + r * np.sin(2 * (phis[i] - phis[j]) + b))
+
+
+@cuda.jit(device=True)
+def reduced_rhs(params, psis, dpsis):
+    """Calculates the right-hand side of the reduced system"""
+    phis = cuda.local.array(DIM, dtype=np.float64)
+    dphis = cuda.local.array(DIM, dtype=np.float64)
+    dpsis_temp = cuda.local.array(DIM, dtype=np.float64)
+
+    phis[0] = 0.
+    for i in range(3):
+        phis[i + 1] = psis[i]
+
+    full_rhs(params, phis, dphis)
+
+    for i in range(DIM):
+        dpsis_temp[i] = dphis[i] - dphis[0]
+    for i in range(DIM_REDUCED):
+        dpsis[i] = dpsis_temp[i + 1]
+
+
+@cuda.jit(device=True)
+def avg_face_dist_deriv(params, pt):
+    """Average distance from the point to the faces of the thetrahedron"""
+    x, y, z = pt
+    sys_curr = cuda.local.array(DIM_REDUCED, dtype=np.float64)
+    reduced_rhs(params, pt, sys_curr)
+    afdd = ((1.0 * x - 0.5 * y) * sys_curr[0] + (-0.5 * x + 1.0 * y - 0.5 * z) * sys_curr[1]
+            + (-0.5 * y + 1.0 * z - np.pi) * sys_curr[2])
+    return afdd
+
+
+@cuda.jit(device=True)
+def stepper_rk4(params, y_curr, dt):
+    """Makes RK-4 step and saves the value in y_curr"""
+    k1 = cuda.local.array(DIM_REDUCED, dtype=np.float64)
+    k2 = cuda.local.array(DIM_REDUCED, dtype=np.float64)
+    k3 = cuda.local.array(DIM_REDUCED, dtype=np.float64)
+    k4 = cuda.local.array(DIM_REDUCED, dtype=np.float64)
+    y_temp = cuda.local.array(DIM_REDUCED, dtype=np.float64)
+
+    reduced_rhs(params, y_curr, k1)
+
+    for i in range(DIM_REDUCED):
+        y_temp[i] = y_curr[i] + k1[i] * dt / 2.0
+    reduced_rhs(params, y_temp, k2)
+
+    for i in range(DIM_REDUCED):
+        y_temp[i] = y_curr[i] + k2[i] * dt / 2.0
+    reduced_rhs(params, y_temp, k3)
+
+    for i in range(DIM_REDUCED):
+        y_temp[i] = y_curr[i] + k3[i] * dt
+    reduced_rhs(params, y_temp, k4)
+
+    for i in range(DIM_REDUCED):
+        y_curr[i] = y_curr[i] + (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0
+
+
+##### Domain number #####
 
 @cuda.jit(device=True)
 def det4x4(m, det):
@@ -52,10 +124,6 @@ def det4x4(m, det):
 
 @cuda.jit(device=True)
 def bary_expansion(pt, bary_coords):
-    """
-    globalPtCoords must be a 3d vector with 0 <= x <= y <= z <= 2pi, i.e. inside a CIR
-    returns an expansion of (globalPtCoords - center of mass) in barycentric coordinates
-    """
     pt_o = cuda.local.array(3, dtype=np.float64)
     pt_a = cuda.local.array(3, dtype=np.float64)
     pt_b = cuda.local.array(3, dtype=np.float64)
@@ -126,44 +194,59 @@ def get_domain_num(bary_expansion):
     return domain_num
 
 
-@cuda.jit(device=True)
-def full_rhs(params, phis, dphis):
-    """Calculates the right-hand side of the full system"""
-    w, a, b, r = params
-    for i in range(4):
-        dphis[i] = w
-        for j in range(4):
-            dphis[i] += 0.25 * (-np.sin(phis[i] - phis[j] + a) + r * np.sin(2 * (phis[i] - phis[j]) + b))
+##### Poincare section #####
 
-
-@cuda.jit(device=True)
-def reduced_rhs(params, psis, dpsis):
-    """Calculates the right-hand side of the reduced system"""
-    phis = cuda.local.array(DIM, dtype=np.float64)
-    dphis = cuda.local.array(DIM, dtype=np.float64)
-    dpsis_temp = cuda.local.array(DIM, dtype=np.float64)
-
-    phis[0] = 0.
-    for i in range(3):
-        phis[i + 1] = psis[i]
-
-    full_rhs(params, phis, dphis)
-
-    for i in range(DIM):
-        dpsis_temp[i] = dphis[i] - dphis[0]
-    for i in range(DIM_REDUCED):
-        dpsis[i] = dpsis_temp[i + 1]
-
-
-@cuda.jit(device=True)
-def avg_face_dist_deriv(params, pt):
-    """Average distance from the point to the faces of the thetrahedron"""
-    x, y, z = pt
-    sys_curr = cuda.local.array(DIM_REDUCED, dtype=np.float64)
-    reduced_rhs(params, pt, sys_curr)
-    afdd = ((1.0 * x - 0.5 * y) * sys_curr[0] + (-0.5 * x + 1.0 * y - 0.5 * z) * sys_curr[1]
-            + (-0.5 * y + 1.0 * z - np.pi) * sys_curr[2])
-    return afdd
+# @cuda.jit(device=True)
+# def t(pt):
+#     x, y, z = pt
+#
+#     x_new = y - x
+#     y_new = z - x
+#     z_new = 2 * np.pi - x
+#
+#     pt[0] = x_new
+#     pt[1] = y_new
+#     pt[2] = z_new
+#
+#
+# @cuda.jit(device=True)
+# def get_plane_coeffs(pt1, pt2, pt3, coeffs):
+#     v1 = cuda.local.array(3, dtype=np.float64)
+#     v2 = cuda.local.array(3, dtype=np.float64)
+#
+#     for i in range(3):
+#         v1[i] = pt2[i] - pt1[i]
+#         v2[i] = pt3[i] - pt2[i]
+#
+#     x1, y1, z1 = v1
+#     x2, y2, z2 = v2
+#
+#     coeffs[0] = y1 * z2 - z1 * y2  # a
+#     coeffs[1] = -(x1 * z2 - z1 * x2)  # b
+#     coeffs[2] = x1 * y2 - y1 * x2  # c
+#     coeffs[3] = -coeffs[0] * pt1[0] - coeffs[1] * pt1[1] - coeffs[2] * pt1[2]  # d
+#
+#
+# @cuda.jit(device=True)
+# def get_poincare_section_coeffs(domain_num, coeffs, inner_sf):
+#     pt1 = cuda.local.array(3, dtype=np.float64)  # pt_w
+#     pt2 = cuda.local.array(3, dtype=np.float64)  # (pt_b + pt_c) / 2
+#
+#     pt1[0] = 0.5*np.pi; pt1[1] = 1.0*np.pi; pt1[2] = 1.5*np.pi
+#
+#     if domain_num == 0:
+#         pt2[0] = 1.0*np.pi; pt2[1] = 2.0*np.pi; pt2[2] = 2.0*np.pi
+#     elif domain_num == 1:
+#         pt2[0] = 1.0*np.pi; pt2[1] = 1.0*np.pi; pt2[2] = 1.0*np.pi
+#     elif domain_num == 2:
+#         pt2[0] = 0.0; pt2[1] = 0.0; pt2[2] = 1.0*np.pi
+#     elif domain_num == 3:
+#         pt2[0] = 0.0; pt2[1] = 1.0*np.pi; pt2[2] = 2.0*np.pi
+#
+#     for i in range(domain_num):  # добавить проверку, что inner_sf находится в 0 подтетраэдре
+#         t(inner_sf)
+#
+#     get_plane_coeffs(pt1, pt2, inner_sf, coeffs)
 
 
 @cuda.jit(device=True)
@@ -174,104 +257,33 @@ def plane_func(pt, plane_coeffs):
 
 
 @cuda.jit(device=True)
-def stepper_rk4(params, y_curr, dt):
-    """Makes RK-4 step and saves the value in y_curr"""
-    k1 = cuda.local.array(DIM_REDUCED, dtype=np.float64)
-    k2 = cuda.local.array(DIM_REDUCED, dtype=np.float64)
-    k3 = cuda.local.array(DIM_REDUCED, dtype=np.float64)
-    k4 = cuda.local.array(DIM_REDUCED, dtype=np.float64)
-    y_temp = cuda.local.array(DIM_REDUCED, dtype=np.float64)
+def set_poincare_section_coeffs(domain_num, coeffs_set, coeffs):
+    for i in range(4):
+        coeffs[i] = coeffs_set[domain_num * 4 + i]
 
-    reduced_rhs(params, y_curr, k1)
 
-    for i in range(DIM_REDUCED):
-        y_temp[i] = y_curr[i] + k1[i] * dt / 2.0
-    reduced_rhs(params, y_temp, k2)
-
-    for i in range(DIM_REDUCED):
-        y_temp[i] = y_curr[i] + k2[i] * dt / 2.0
-    reduced_rhs(params, y_temp, k3)
-
-    for i in range(DIM_REDUCED):
-        y_temp[i] = y_curr[i] + k3[i] * dt
-    reduced_rhs(params, y_temp, k4)
-
-    for i in range(DIM_REDUCED):
-        y_curr[i] = y_curr[i] + (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0
-
+###### Sweep components: events, evaluator, integrator, sweep ######
 
 @cuda.jit(device=True)
-def kneading_evaluator(state_curr, kneading_index, kneadings_end, kneadings_weighted_sum):
-    curr_bary = cuda.local.array(DIM, dtype=np.float64)
-    bary_expansion(state_curr, curr_bary)
-    curr_domain = get_domain_num(curr_bary)
-    return kneadings_weighted_sum + curr_domain * 1 / (4.0 ** (-kneading_index + kneadings_end + 1))
+def event_cross_plane(params, state_prev, state_curr, coeffs_set):
+    bary_prev = cuda.local.array(DIM, dtype=np.float64)
+    bary_curr = cuda.local.array(DIM, dtype=np.float64)
+    coeffs_prev = cuda.local.array(DIM, dtype=np.float64)
+    coeffs_curr = cuda.local.array(DIM, dtype=np.float64)
 
+    bary_expansion(state_prev, bary_prev)
+    domain_prev = get_domain_num(bary_prev)
+    set_poincare_section_coeffs(domain_prev, coeffs_set, coeffs_prev)
+    plane_val_prev = plane_func(state_prev, coeffs_prev)
 
-@cuda.jit(device=True)
-def get_coeffs_by_domain_num(domain_num, coeffs):
-    # if domain_num == 0:
-    #     coeffs[0] = np.pi ** 2
-    #     coeffs[1] = -0.5 * np.pi ** 2
-    #     coeffs[2] = 0.0
-    #     coeffs[3] = 0.0
-    # elif domain_num == 1:
-    #     coeffs[0] = -0.5 * np.pi ** 2
-    #     coeffs[1] = 0.0
-    #     coeffs[2] = -0.5 * np.pi ** 2
-    #     coeffs[3] = np.pi ** 3
-    # elif domain_num == 2:
-    #     coeffs[0] = 0.0
-    #     coeffs[1] = -0.5 * np.pi ** 2
-    #     coeffs[2] = np.pi ** 2
-    #     coeffs[3] = -np.pi ** 3
-    # elif domain_num == 3:
-    #     coeffs[0] = -0.5 * np.pi ** 2
-    #     coeffs[1] = np.pi ** 2
-    #     coeffs[2] = -0.5 * np.pi ** 2
-    #     coeffs[3] = 0.0
-    if domain_num == 0:
-        coeffs[0] = 1.04187071692464
-        coeffs[1] = -0.242406134831432
-        coeffs[2] = -0.557058447261778
-        coeffs[3] = 1.75005072553774
-    elif domain_num == 1:
-        coeffs[0] = -0.242406134831432
-        coeffs[1] = -0.557058447261777
-        coeffs[2] = -0.242406134831432
-        coeffs[3] = 3.27313339028078
-    elif domain_num == 2:
-        coeffs[0] = -0.557058447261779
-        coeffs[1] = -0.242406134831431
-        coeffs[2] = 1.04187071692464
-        coeffs[3] = -3.27313339028078
-    elif domain_num == 3:
-        coeffs[0] = -0.242406134831431
-        coeffs[1] = 1.04187071692464
-        coeffs[2] = -0.242406134831431
-        coeffs[3] = -1.75005072553774
-
-
-@cuda.jit(device=True)
-def event_cross_plane(params, state_prev, state_curr):
-    prev_bary = cuda.local.array(DIM, dtype=np.float64)
-    curr_bary = cuda.local.array(DIM, dtype=np.float64)
-    prev_coeffs = cuda.local.array(DIM, dtype=np.float64)
-    curr_coeffs = cuda.local.array(DIM, dtype=np.float64)
-
-    bary_expansion(state_prev, prev_bary)
-    prev_domain = get_domain_num(prev_bary)
-    get_coeffs_by_domain_num(prev_domain, prev_coeffs)
-    prev_pl_val = plane_func(state_prev, prev_coeffs)
-
-    bary_expansion(state_curr, curr_bary)
-    curr_domain = get_domain_num(curr_bary)
-    get_coeffs_by_domain_num(curr_domain, curr_coeffs)
-    curr_pl_val = plane_func(state_curr, curr_coeffs)
+    bary_expansion(state_curr, bary_curr)
+    domain_curr = get_domain_num(bary_curr)
+    set_poincare_section_coeffs(domain_curr, coeffs_set, coeffs_curr)
+    plane_val_curr = plane_func(state_curr, coeffs_curr)
 
     evt_happened = False
-    if prev_domain == curr_domain:
-        if prev_pl_val < 0 < curr_pl_val:
+    if domain_prev == domain_curr:
+        if plane_val_prev < 0 < plane_val_curr:
             evt_happened = True
 
     return evt_happened
@@ -284,9 +296,17 @@ def event_avg_face_dist_deriv_max(params, state_prev, state_curr):
     return deriv_curr < 0 < deriv_prev
 
 
+@cuda.jit(device=True)
+def kneading_evaluator(state_curr, kneading_index, kneadings_end, kneadings_weighted_sum):
+    curr_bary = cuda.local.array(DIM, dtype=np.float64)
+    bary_expansion(state_curr, curr_bary)
+    curr_domain = get_domain_num(curr_bary)
+    return kneadings_weighted_sum + curr_domain * 1 / (4.0 ** (-kneading_index + kneadings_end + 1))
+
+
 def make_integrator_rk4(event_condition, kneading_encoder):
     @cuda.jit(device=True)
-    def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end):
+    def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end, misc):
         """Calculates kneadings during integration"""
         y_prev = cuda.local.array(DIM_REDUCED, dtype=np.float64)
         rhs = cuda.local.array(DIM_REDUCED, dtype=np.float64)
@@ -306,11 +326,11 @@ def make_integrator_rk4(event_condition, kneading_encoder):
                 if y_curr[k] > INFINITY or y_curr[k] < -INFINITY:
                     return InfinityError
 
-            # reduced_rhs(params, y_curr, rhs)
-            # if abs(rhs[0]) < 1e-6 and abs(rhs[1]) < 1e-6 and abs(rhs[2]) < 1e-6:
-            #     return InEquilibriumError
+            reduced_rhs(params, y_curr, rhs)
+            if abs(rhs[0]) < 1e-8 and abs(rhs[1]) < 1e-8 and abs(rhs[2]) < 1e-8:
+                return InEquilibriumError
 
-            if event_condition(params, y_prev, y_curr):
+            if event_condition(params, y_prev, y_curr, misc):
 
                 if kneading_index >= kneadings_start:
                     kneadings_weighted_sum = kneading_encoder(y_curr, kneading_index, kneadings_end, kneadings_weighted_sum)
@@ -332,28 +352,30 @@ def make_sweep_threads(event_condition, kneading_encoder):
     integrator_rk4 = make_integrator_rk4(event_condition, kneading_encoder)
     @cuda.jit
     def sweep_threads(
-        kneadings_weighted_sum_set,
-        inits,
-        nones,
-        params_x,
-        params_y,
-        def_params,
-        param_x_idx,
-        param_y_idx,
-        up_n,
-        down_n,
-        left_n,
-        right_n,
-        dt,
-        n,
-        stride,
-        kneadings_start,
-        kneadings_end,
+            kneadings_weighted_sum_set,
+            inits,
+            nones,
+            params_x,
+            params_y,
+            def_params,
+            param_x_idx,
+            param_y_idx,
+            up_n,
+            down_n,
+            left_n,
+            right_n,
+            dt,
+            n,
+            stride,
+            kneadings_start,
+            kneadings_end,
+            misc
     ):
         """CUDA kernel"""
         idx = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
+        grid_count = (left_n + right_n + 1) * (up_n + down_n + 1)
 
-        if idx < (left_n + right_n + 1) * (up_n + down_n + 1):
+        if idx < grid_count:
 
             is_in_nones = False
             for i in range(len(nones)):
@@ -365,38 +387,41 @@ def make_sweep_threads(event_condition, kneading_encoder):
                 init = cuda.local.array(DIM_REDUCED, dtype=np.float64)
                 params = cuda.local.array(4, dtype=np.float64)
 
-                init[0] = inits[idx * DIM_REDUCED + 0]
-                init[1] = inits[idx * DIM_REDUCED + 1]
-                init[2] = inits[idx * DIM_REDUCED + 2]
+                for i in range(DIM_REDUCED):
+                    init[i] = inits[idx * DIM_REDUCED + i]
 
-                for i in range(4):
+                for i in range(PARAMS_COUNT):
                     params[i] = def_params[i]
                 params[param_x_idx] = params_x[idx]
                 params[param_y_idx] = params_y[idx]
 
-                kneadings_weighted_sum_set[idx] = integrator_rk4(init, params, dt, n, stride, kneadings_start, kneadings_end)
+                kneadings_weighted_sum_set[idx] = integrator_rk4(init, params, dt, n, stride, kneadings_start,
+                                                                 kneadings_end, misc)
 
     return sweep_threads
 
 
+###### General sweep function ######
+
 def sweep(
-    inits,
-    nones,
-    params_x,
-    params_y,
-    def_params,
-    param_to_index,
-    param_x_str,
-    param_y_str,
-    up_n,
-    down_n,
-    left_n,
-    right_n,
-    dt,
-    n,
-    stride,
-    kneadings_start,
-    kneadings_end,
+        inits,
+        nones,
+        params_x,
+        params_y,
+        def_params,
+        param_to_index,
+        param_x_str,
+        param_y_str,
+        up_n,
+        down_n,
+        left_n,
+        right_n,
+        dt,
+        n,
+        stride,
+        kneadings_start,
+        kneadings_end,
+        misc
 ):
     """Calls CUDA kernel and gets kneadings set back from GPU"""
     total_parameter_space_size = (left_n + right_n + 1) * (up_n + down_n + 1)
@@ -408,6 +433,7 @@ def sweep(
     def_params_gpu = cuda.to_device(def_params)
     params_x_gpu = cuda.to_device(params_x)
     params_y_gpu = cuda.to_device(params_y)
+    misc_gpu = cuda.to_device(misc)
 
     param_x_idx = param_to_index[param_x_str]
     param_y_idx = param_to_index[param_y_str]
@@ -451,6 +477,7 @@ def sweep(
         stride,
         kneadings_start,
         kneadings_end,
+        misc_gpu
     )
 
     kneadings_weighted_sum_set_gpu.copy_to_host(kneadings_weighted_sum_set)

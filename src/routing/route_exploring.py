@@ -1,6 +1,5 @@
 import os
 import datetime
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from ast import literal_eval
 

@@ -43,17 +43,18 @@ task: kneadings
 # task function needs
 sf_grid:
   start_eq: [0.0, 2.309560584015542, 4.756520197312062]
-  input_data: #'./output/test_2026-03-02_23-49-47.hdf5'
+  inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
+  input_data: './output/test_2026-03-09_17-53-33.hdf5'
 kneadings:
   dt: 0.01
-  n: 50000
+  n: 150000
   stride: 1
   kneadings_start: 0
   kneadings_end: 2
-  input_data: #'./output/test_2026-03-02_23-49-47.hdf5'
+  input_data: './output/test_2026-03-09_17-53-33.hdf5'
 route:
-  start_pt: (-2.9195, -1.620)
-  end_pt: (-2.910209192326542, -1.611684228842761)
+  start_pt: (-2.920, -1.615) #(-2.9195, -1.620)
+  end_pt: (-2.911, -1.615) #(-2.910209192326542, -1.611684228842761)
   only_map_flag: 0
 # information for saving files
 # "directory": where save it
