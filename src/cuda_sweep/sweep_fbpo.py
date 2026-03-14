@@ -12,14 +12,16 @@ PARAM_TO_INDEX = {
 DIM = 4
 DIM_REDUCED = DIM - 1
 PARAMS_COUNT = 4
+MISC_DATA_BLOCK_LEN = DIM_REDUCED
+
 THREADS_PER_BLOCK = 512
 
 INFINITY = 10
 
 KneadingDoNotEndError = -0.1
-InfinityError = -0.20
-InEquilibriumError = -0.21
-NoInitFoundError = -0.3
+InfinityError = -0.85
+InEquilibriumError = -0.20
+NoInitFoundError = -1.0
 
 
 ##### System #####
@@ -196,57 +198,95 @@ def get_domain_num(bary_expansion):
 
 ##### Poincare section #####
 
-# @cuda.jit(device=True)
-# def t(pt):
-#     x, y, z = pt
-#
-#     x_new = y - x
-#     y_new = z - x
-#     z_new = 2 * np.pi - x
-#
-#     pt[0] = x_new
-#     pt[1] = y_new
-#     pt[2] = z_new
-#
-#
-# @cuda.jit(device=True)
-# def get_plane_coeffs(pt1, pt2, pt3, coeffs):
-#     v1 = cuda.local.array(3, dtype=np.float64)
-#     v2 = cuda.local.array(3, dtype=np.float64)
-#
-#     for i in range(3):
-#         v1[i] = pt2[i] - pt1[i]
-#         v2[i] = pt3[i] - pt2[i]
-#
-#     x1, y1, z1 = v1
-#     x2, y2, z2 = v2
-#
-#     coeffs[0] = y1 * z2 - z1 * y2  # a
-#     coeffs[1] = -(x1 * z2 - z1 * x2)  # b
-#     coeffs[2] = x1 * y2 - y1 * x2  # c
-#     coeffs[3] = -coeffs[0] * pt1[0] - coeffs[1] * pt1[1] - coeffs[2] * pt1[2]  # d
-#
-#
-# @cuda.jit(device=True)
-# def get_poincare_section_coeffs(domain_num, coeffs, inner_sf):
-#     pt1 = cuda.local.array(3, dtype=np.float64)  # pt_w
-#     pt2 = cuda.local.array(3, dtype=np.float64)  # (pt_b + pt_c) / 2
-#
-#     pt1[0] = 0.5*np.pi; pt1[1] = 1.0*np.pi; pt1[2] = 1.5*np.pi
-#
-#     if domain_num == 0:
-#         pt2[0] = 1.0*np.pi; pt2[1] = 2.0*np.pi; pt2[2] = 2.0*np.pi
-#     elif domain_num == 1:
-#         pt2[0] = 1.0*np.pi; pt2[1] = 1.0*np.pi; pt2[2] = 1.0*np.pi
-#     elif domain_num == 2:
-#         pt2[0] = 0.0; pt2[1] = 0.0; pt2[2] = 1.0*np.pi
-#     elif domain_num == 3:
-#         pt2[0] = 0.0; pt2[1] = 1.0*np.pi; pt2[2] = 2.0*np.pi
-#
-#     for i in range(domain_num):  # добавить проверку, что inner_sf находится в 0 подтетраэдре
-#         t(inner_sf)
-#
-#     get_plane_coeffs(pt1, pt2, inner_sf, coeffs)
+@cuda.jit(device=True)
+def t(pt, new_pt):
+    x, y, z = pt
+    new_pt[0] = y - x
+    new_pt[1] = z - x
+    new_pt[2] = 2 * np.pi - x
+
+
+@cuda.jit(device=True)
+def get_plane_coeffs(pt1, pt2, pt3, coeffs):
+    v1 = cuda.local.array(3, dtype=np.float64)
+    v2 = cuda.local.array(3, dtype=np.float64)
+
+    for i in range(3):
+        v1[i] = pt2[i] - pt1[i]
+        v2[i] = pt3[i] - pt2[i]
+
+    x1, y1, z1 = v1
+    x2, y2, z2 = v2
+
+    coeffs[0] = y1 * z2 - z1 * y2  # a
+    coeffs[1] = -(x1 * z2 - z1 * x2)  # b
+    coeffs[2] = x1 * y2 - y1 * x2  # c
+    coeffs[3] = -coeffs[0] * pt1[0] - coeffs[1] * pt1[1] - coeffs[2] * pt1[2]  # d
+
+
+@cuda.jit(device=True)
+def set_default_poincare_section_coeffs(domain_num, coeffs):
+    if domain_num == 0:
+        coeffs[0] = 1.04187071692464
+        coeffs[1] = -0.242406134831432
+        coeffs[2] = -0.557058447261778
+        coeffs[3] = 1.75005072553774
+    elif domain_num == 1:
+        coeffs[0] = -0.242406134831432
+        coeffs[1] = -0.557058447261777
+        coeffs[2] = -0.242406134831432
+        coeffs[3] = 3.27313339028078
+    elif domain_num == 2:
+        coeffs[0] = -0.557058447261779
+        coeffs[1] = -0.242406134831431
+        coeffs[2] = 1.04187071692464
+        coeffs[3] = -3.27313339028078
+    elif domain_num == 3:
+        coeffs[0] = -0.242406134831431
+        coeffs[1] = 1.04187071692464
+        coeffs[2] = -0.242406134831431
+        coeffs[3] = -1.75005072553774
+
+
+@cuda.jit(device=True)
+def set_inner_sf_poincare_section_coeffs(domain_num, inner_sf, coeffs):
+    pt1 = cuda.local.array(3, dtype=np.float64)  # pt_w
+    pt2 = cuda.local.array(3, dtype=np.float64)  # (pt_b + pt_c) / 2
+    inner_sf_temp = cuda.local.array(3, dtype=np.float64)
+
+    pt1[0] = 0.5*np.pi; pt1[1] = 1.0*np.pi; pt1[2] = 1.5*np.pi
+
+    if domain_num == 0:
+        pt2[0] = 1.0*np.pi; pt2[1] = 2.0*np.pi; pt2[2] = 2.0*np.pi
+    elif domain_num == 1:
+        pt2[0] = 1.0*np.pi; pt2[1] = 1.0*np.pi; pt2[2] = 1.0*np.pi
+    elif domain_num == 2:
+        pt2[0] = 0.0; pt2[1] = 0.0; pt2[2] = 1.0*np.pi
+    elif domain_num == 3:
+        pt2[0] = 0.0; pt2[1] = 1.0*np.pi; pt2[2] = 2.0*np.pi
+
+    for i in range(3):
+        inner_sf_temp[i] = inner_sf[i]
+    for i in range(domain_num):  # inner_sf должен находиться в 0 подтетраэдре!
+        t(inner_sf_temp, inner_sf_temp)
+
+    get_plane_coeffs(pt1, pt2, inner_sf_temp, coeffs)
+
+    if domain_num == 0 or domain_num == 2:
+        for i in range(4):
+            coeffs[i] = -coeffs[i]
+
+
+@cuda.jit(device=True)
+def set_poincare_section_coeffs(domain_num, inner_sf, coeffs):
+    all_zero = False
+    if inner_sf[0] == 0 and inner_sf[1] == 0 and inner_sf[2] == 0:
+        all_zero = True
+
+    if all_zero:
+        set_default_poincare_section_coeffs(domain_num, coeffs)
+    else:
+        set_inner_sf_poincare_section_coeffs(domain_num, inner_sf, coeffs)
 
 
 @cuda.jit(device=True)
@@ -256,16 +296,10 @@ def plane_func(pt, plane_coeffs):
     return a*x + b*y + c*z + d
 
 
-@cuda.jit(device=True)
-def set_poincare_section_coeffs(domain_num, coeffs_set, coeffs):
-    for i in range(4):
-        coeffs[i] = coeffs_set[domain_num * 4 + i]
-
-
 ###### Sweep components: events, evaluator, integrator, sweep ######
 
 @cuda.jit(device=True)
-def event_cross_plane(params, state_prev, state_curr, coeffs_set):
+def event_cross_plane(params, state_prev, state_curr, inner_sf):
     bary_prev = cuda.local.array(DIM, dtype=np.float64)
     bary_curr = cuda.local.array(DIM, dtype=np.float64)
     coeffs_prev = cuda.local.array(DIM, dtype=np.float64)
@@ -273,12 +307,14 @@ def event_cross_plane(params, state_prev, state_curr, coeffs_set):
 
     bary_expansion(state_prev, bary_prev)
     domain_prev = get_domain_num(bary_prev)
-    set_poincare_section_coeffs(domain_prev, coeffs_set, coeffs_prev)
+    set_poincare_section_coeffs(domain_prev, inner_sf, coeffs_prev)
+    # set_default_poincare_section_coeffs(domain_prev, coeffs_prev)
     plane_val_prev = plane_func(state_prev, coeffs_prev)
 
     bary_expansion(state_curr, bary_curr)
     domain_curr = get_domain_num(bary_curr)
-    set_poincare_section_coeffs(domain_curr, coeffs_set, coeffs_curr)
+    set_poincare_section_coeffs(domain_curr, inner_sf, coeffs_curr)
+    # set_default_poincare_section_coeffs(domain_curr, coeffs_curr)
     plane_val_curr = plane_func(state_curr, coeffs_curr)
 
     evt_happened = False
@@ -369,7 +405,7 @@ def make_sweep_threads(event_condition, kneading_encoder):
             stride,
             kneadings_start,
             kneadings_end,
-            misc
+            misc_set
     ):
         """CUDA kernel"""
         idx = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
@@ -385,7 +421,8 @@ def make_sweep_threads(event_condition, kneading_encoder):
                     break
             if is_in_nones == False:
                 init = cuda.local.array(DIM_REDUCED, dtype=np.float64)
-                params = cuda.local.array(4, dtype=np.float64)
+                params = cuda.local.array(PARAMS_COUNT, dtype=np.float64)
+                misc = cuda.local.array(MISC_DATA_BLOCK_LEN, dtype=np.float64)
 
                 for i in range(DIM_REDUCED):
                     init[i] = inits[idx * DIM_REDUCED + i]
@@ -394,6 +431,13 @@ def make_sweep_threads(event_condition, kneading_encoder):
                     params[i] = def_params[i]
                 params[param_x_idx] = params_x[idx]
                 params[param_y_idx] = params_y[idx]
+
+                if len(misc_set) == MISC_DATA_BLOCK_LEN:
+                    for i in range(MISC_DATA_BLOCK_LEN):
+                        misc[i] = misc_set[i]
+                else:  # elif grid_count == len(misc_set) / MISC_DATA_BLOCK_LEN:
+                    for i in range(MISC_DATA_BLOCK_LEN):
+                        misc[i] = misc_set[idx * MISC_DATA_BLOCK_LEN + i]
 
                 kneadings_weighted_sum_set[idx] = integrator_rk4(init, params, dt, n, stride, kneadings_start,
                                                                  kneadings_end, misc)
@@ -421,10 +465,13 @@ def sweep(
         stride,
         kneadings_start,
         kneadings_end,
-        misc
+        misc_set
 ):
     """Calls CUDA kernel and gets kneadings set back from GPU"""
     total_parameter_space_size = (left_n + right_n + 1) * (up_n + down_n + 1)
+    assert len(misc_set) == MISC_DATA_BLOCK_LEN or total_parameter_space_size == len(misc_set) / MISC_DATA_BLOCK_LEN, \
+        "Failed to unpack misc"
+
     kneadings_weighted_sum_set = np.zeros(total_parameter_space_size)
     kneadings_weighted_sum_set_gpu = cuda.device_array(total_parameter_space_size)
 
@@ -433,13 +480,12 @@ def sweep(
     def_params_gpu = cuda.to_device(def_params)
     params_x_gpu = cuda.to_device(params_x)
     params_y_gpu = cuda.to_device(params_y)
-    misc_gpu = cuda.to_device(misc)
+    misc_set_gpu = cuda.to_device(misc_set)
 
     param_x_idx = param_to_index[param_x_str]
     param_y_idx = param_to_index[param_y_str]
 
-    grid_x_dimension = (total_parameter_space_size + THREADS_PER_BLOCK - 1) // THREADS_PER_BLOCK
-    dim_grid = grid_x_dimension
+    dim_grid = (total_parameter_space_size + THREADS_PER_BLOCK - 1) // THREADS_PER_BLOCK
     dim_block = THREADS_PER_BLOCK
 
     print(f"Num of blocks per grid:       {dim_grid}")
@@ -477,68 +523,9 @@ def sweep(
         stride,
         kneadings_start,
         kneadings_end,
-        misc_gpu
+        misc_set_gpu
     )
 
     kneadings_weighted_sum_set_gpu.copy_to_host(kneadings_weighted_sum_set)
 
     return kneadings_weighted_sum_set
-
-
-if __name__ == "__main__":
-    dt = 0.01
-    n = 50000
-    stride = 1
-    max_kneadings = 7
-
-    inits_data = np.load(r'../system_analysis/inits1.npz')
-
-    inits = inits_data['inits']
-    nones = inits_data['nones']
-    params_x = inits_data['alphas']
-    params_y = inits_data['betas']
-    up_n = int(inits_data['up_n'])
-    down_n = int(inits_data['down_n'])
-    left_n = int(inits_data['left_n'])
-    right_n = int(inits_data['right_n'])
-
-    # default parameter values
-    w = 0.0
-    a = -2.907273192326542
-    b = -1.623684228842761
-    r = 1.0
-    def_params = [w, a, b, r]
-
-    kneadings_weighted_sum_set = sweep(
-        inits,
-        nones,
-        params_x,
-        params_y,
-        def_params,
-        PARAM_TO_INDEX,
-        'a',
-        'b',
-        up_n,
-        down_n,
-        left_n,
-        right_n,
-        dt,
-        n,
-        stride,
-        0,
-        max_kneadings
-    )
-
-    np.savez(
-        'sweep_fbpo.npz',
-        kneadings=kneadings_weighted_sum_set
-    )
-
-    print("Results:")
-    for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
-        kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 4, max_kneadings)
-
-        print(f"a: {params_x[idx]:.9f}, "
-              f"b: {params_y[idx]:.9f} => "
-              f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")

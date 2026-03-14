@@ -4,10 +4,10 @@
 # for studied system; system is always created with
 # these parameters first
 defaultSystem:
-  w: 0
-  a: -2.515
+  w: 0.0
+  a: -2.911209192326542
   b: -1.612684228842761
-  r: 1
+  r: 1.0
   param_to_index:
     w: 0
     a: 1
@@ -23,38 +23,39 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 500
-    right_n: 200
-    left_step: 0.0005
-    right_step: 0.0005
+    left_n: 400
+    right_n: 400
+    left_step: 0.001
+    right_step: 0.001
     name: a
     caption: \alpha
   second:
     down_n: 400
-    up_n: 60
-    down_step: 0.0005
-    up_step: 0.0005
-    name: b
-    caption: \beta
+    up_n: 400
+    down_step: 0.001
+    up_step: 0.001
+    name: r
+    caption: r
 # name of the task to perform
 task: kneadings
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
 sf_grid:
-  start_eq: [0., 2.21648268, 4.47347482]
-  input_data:
+  start_eq: [0.0, 2.30956058, 4.75652024]
+  inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
+  input_data: './output/a_r/h1_vicinity/h1_vicinity_a_r_1-1.hdf5'
 kneadings:
   dt: 0.01
   n: 50000
   stride: 1
   kneadings_start: 0
-  kneadings_end: 7
-  input_data:
+  kneadings_end: 2
+  input_data: './output/a_r/h1_vicinity/h1_vicinity_a_r_1-1.hdf5'
 route:
-  start_pt:
-  end_pt:
-  only_map_flag: 0
+  start_pt: (-3.25, 1.15)
+  end_pt: (-2.75, 1.15)
+  map_only: 0
 # information for saving files
 # "directory": where save it
 # "mask": what is the prefix
@@ -64,9 +65,9 @@ route:
 # - "folder": creates folder with timestamp name and saves everything there
 # "imageExtension": used specifically for images
 output:
-  directory: "./output/"
-  mask: bigger_2
-  useTimestamp: ignore
+  directory: "./output/a_r/h1_vicinity/"
+  mask: h1_vicinity_a_r
+  useTimestamp: file
   imageExtension: png
 # some functions might use additional keyword-arguments
 # we can pass them through "misc" dictionary
@@ -83,7 +84,7 @@ misc:
       axes.labelsize: 26     # font size of the x and y labels
 #      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
 #      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
-      figure.dpi: 100
+      figure.dpi: 72
       savefig.dpi: 300
   views:
     view_1:

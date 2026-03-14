@@ -55,7 +55,7 @@ kneadings:
 route:
   start_pt:
   end_pt:
-  only_map_flag: 0
+  map_only: 0
 # information for saving files
 # "directory": where save it
 # "mask": what is the prefix
@@ -84,7 +84,7 @@ misc:
       axes.labelsize: 26     # font size of the x and y labels
 #      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
 #      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
-      figure.dpi: 300
+      figure.dpi: 72
       savefig.dpi: 300
   views:
     view_1:

@@ -7,8 +7,8 @@ import src.computing.workers_kneadings_fbpo as wrk
 import src.computing.engines_kneadings_fbpo as engine
 
 from lib.computation_template.engine import workflow, getConfiguration, parseArguments
-from src.computing.engines_kneadings_fbpo import get_kneadings_data, check_config_correspondence
-from src.routing.route_tools_sepbif import views, map_out_sepbif_route_on_kneadings_set
+from src.computing.engines_kneadings_fbpo import get_kneadings_data, get_config_data, check_config_correspondence
+from src.routing.route_tools_sepbif import map_out_sepbif_route_on_kneadings_set
 from src.routing.route_tools_attr import map_out_attr_route_on_kneadings_set
 
 ENGINE_REGISTRY = {'kneadings': engine.general_engine}
@@ -27,7 +27,9 @@ if __name__ == "__main__":
         workflow(config, init_func, grid_maker, worker, engine, post_process)
 
     elif task_name == 'route':
-        kneadings_data, _, _, _, kneadings_config = get_kneadings_data(config['kneadings']['input_data'])
+        kneadings_input_data_path = config['kneadings']['input_data']
+        kneadings_data = get_kneadings_data(kneadings_input_data_path)
+        kneadings_config = get_config_data(kneadings_input_data_path)
         check_config_correspondence(kneadings_config, config, ('sf_grid', 'kneadings'))
 
         print("1. Analyze attractors on the route")

@@ -3,16 +3,18 @@ import time
 import datetime
 import matplotlib.pyplot as plt
 import io
+import multiprocessing
 
 from lib.computation_template.workers_utils import register, makeFinalOutname
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 
-from src.computing.engines_kneadings_fbpo import get_kneadings_data, check_config_correspondence, save_kneadings_data
-from src.system_analysis.find_equilibrium import find_equilibrium_by_guess
-from src.system_analysis.get_inits import (continue_equilibrium, continue_equilibrium_mp,
-                                           get_eq_type_grid, find_inits_for_equilibrium_grid, generate_parameters)
-from src.system_analysis.poincare_section import get_poincare_section_coeffs
+from src.computing.engines_kneadings_fbpo import (get_kneadings_data, get_inits_data, get_config_data,
+                                                  check_config_correspondence, save_kneadings_data)
+from src.system_analysis.find_equilibrium import correct_equilibrium_coords
+from src.system_analysis.get_inits import (continue_equilibrium, continue_equilibrium_mp, get_eq_type_grid,
+                                           find_inits_for_equilibrium_grid, generate_parameters, prepare_inner_sf_set)
+# from src.system_analysis.poincare_section import get_poincare_section_coeffs
 from src.cuda_sweep.sweep_fbpo import sweep
 from src.plotting.convert import convert_heavy_tail_to_sequence
 from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
@@ -55,7 +57,9 @@ def init_kneadings_fbpo(config, timeStamp):
     param_y = float(def_params[param_to_index[param_y_name]])
 
     if input_data_path is not None:
-        kneadings_data, _, inits, nones, coeffs_set, prev_config = get_kneadings_data(input_data_path)
+        kneadings_data = get_kneadings_data(input_data_path)
+        inits, nones, inner_sf_set = get_inits_data(input_data_path)
+        prev_config = get_config_data(input_data_path)
         check_config_correspondence(prev_config, config, ('sf_grid',))
         _, _, params_x, params_y, _ = kneadings_data
     else:
@@ -68,26 +72,34 @@ def init_kneadings_fbpo(config, timeStamp):
         if start_eq is not None:
             start = time.time()
 
-            start_eq_grid = continue_equilibrium(reduced_rhs, reduced_jac, get_params, set_params,
-                                                 param_to_index, param_x_name, param_y_name,
-                                                 start_eq, up_n, down_n, left_n, right_n,
-                                                 up_step, down_step, left_step, right_step)
+            start_eq = correct_equilibrium_coords(reduced_rhs, reduced_jac, start_eq)
+            inner_sf = correct_equilibrium_coords(reduced_rhs, reduced_jac, inner_sf_guess)
+            # coeffs_set = get_poincare_section_coeffs(inner_sf)
+
+            with multiprocessing.Pool(processes=2) as pool:
+                args_start_eq = (reduced_rhs, reduced_jac, get_params, set_params,
+                                 param_to_index, param_x_name, param_y_name,
+                                 start_eq, up_n, down_n, left_n, right_n,
+                                 up_step, down_step, left_step, right_step)
+                args_inner_sf = (reduced_rhs, reduced_jac, get_params, set_params,
+                                 param_to_index, param_x_name, param_y_name,
+                                 inner_sf, up_n, down_n, left_n, right_n,
+                                 up_step, down_step, left_step, right_step)
+                start_eq_grid, inner_sf_grid = pool.starmap(continue_equilibrium, [args_start_eq, args_inner_sf])
+
             start_sf_grid = get_eq_type_grid(start_eq_grid, up_n, down_n, left_n, right_n, sf.has1DUnstable, sf.STD_PRECISION)
             inits, nones = find_inits_for_equilibrium_grid(start_sf_grid, 3, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
             params_x, params_y = generate_parameters(param_x, param_y, up_n, down_n, left_n, right_n,
                                                      up_step, down_step, left_step, right_step)
 
-            inner_sf = find_equilibrium_by_guess(reduced_rhs, reduced_jac, inner_sf_guess)
-            if inner_sf is not None:
-                inner_sf = inner_sf.coordinates
-            coeffs_set = get_poincare_section_coeffs(inner_sf)
+            inner_sf_set = prepare_inner_sf_set(inner_sf_grid, 3, up_n, down_n, left_n, right_n)
 
             end = time.time()
             print(f"Took {end - start}s ({datetime.timedelta(seconds=end - start)})")
         else:
             raise ValueError("No start equilibrium given")
 
-    return {'inits': inits, 'nones': nones, 'params_x': params_x, 'params_y': params_y, 'coeffs_set': coeffs_set,
+    return {'inits': inits, 'nones': nones, 'params_x': params_x, 'params_y': params_y, 'inner_sf_set': inner_sf_set,
             'targetDir': 'output'}
 
 
@@ -119,9 +131,10 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
     nones = initResult['nones']
     params_x = initResult['params_x']
     params_y = initResult['params_y']
-    coeffs_set = initResult['coeffs_set']
+    inner_sf_set = initResult['inner_sf_set']
 
     def_params = [w, a, b, r]
+    kneadings_len = kneadings_end - kneadings_start + 1
 
     kneadings_weighted_sum_set = sweep(
         inits,
@@ -141,11 +154,9 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
         stride,
         kneadings_start,
         kneadings_end,
-        coeffs_set
+        inner_sf_set
     )
 
-    # print("Results:")
-    kneadings_len = kneadings_end - kneadings_start + 1
     kneadings_records = ""
     for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
         kneading_weighted_sum = kneadings_weighted_sum_set[idx]
@@ -180,7 +191,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     nones = initResult['nones']
     params_x = initResult['params_x']
     params_y = initResult['params_y']
-    coeffs_set = initResult['coeffs_set']
+    inner_sf_set = initResult['inner_sf_set']
 
     plot_settings = config['misc']['plot_settings']['default']
 
@@ -210,13 +221,16 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
         fig.savefig(buff, format='raw')
         buff.seek(0)
         mode_map_data = np.frombuffer(buff.getvalue(), dtype=np.uint8)
-    w, h = fig.canvas.get_width_height()
-    mode_map_data = mode_map_data.reshape((int(h), int(w), -1))
+    save_dpi = plot_settings['savefig.dpi']
+    w_inch, h_inch = fig.get_size_inches()
+    w = int(w_inch * save_dpi)
+    h = int(h_inch * save_dpi)
+    mode_map_data = mode_map_data.reshape((h, w, -1))
 
     # СОХРАНЕНИЕ
 
     hdf5_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
-    save_kneadings_data(hdf5_outname, kneadings_data, mode_map_data, inits, nones, coeffs_set, config)
+    save_kneadings_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
     print("Dataset successfully saved")
 
     txt_outname = makeFinalOutname(config, initResult, "txt", startTime)

@@ -35,11 +35,16 @@ def get_target_points_sepbif(idxs, coords, vals):
 
 
 def plot_target_attractors_sepbif(config, views, saving_directory, target_pts, convert_func):
-    start_pts = target_pts['start_pts']
-    end_pts = target_pts['end_pts']
+    def_sys_dict = config['defaultSystem']
+    w = def_sys_dict['w']
+    a = def_sys_dict['a']
+    b = def_sys_dict['b']
+    r = def_sys_dict['r']
+    param_to_index = def_sys_dict['param_to_index']
 
-    default_w = float(config['defaultSystem']['w'])
-    default_r = float(config['defaultSystem']['r'])
+    grid_dict = config['grid']
+    param_x_name = grid_dict['first']['name']
+    param_y_name = grid_dict['second']['name']
 
     kneadings_dict = config['kneadings']
     dt = kneadings_dict['dt']
@@ -47,30 +52,34 @@ def plot_target_attractors_sepbif(config, views, saving_directory, target_pts, c
     kneadings_start = kneadings_dict['kneadings_start']
     kneadings_end = kneadings_dict['kneadings_end']
 
-    kneadings_len = kneadings_end - kneadings_start + 1
+    start_pts = target_pts['start_pts']
+    end_pts = target_pts['end_pts']
 
+    params1 = [w, a, b, r]
+    params2 = [w, a, b, r]
+    kneadings_len = kneadings_end - kneadings_start + 1
 
     assert len(start_pts) == len(end_pts), "Start and end groups of points are different in length"
     for i in range(len(start_pts)):
-        start_pt_a, start_pt_b = start_pts[i]['coords']
-        start_pt_val = start_pts[i]['val']
-
-        end_pt_a, end_pt_b = end_pts[i]['coords']
+        end_pt_param_x, end_pt_param_y = end_pts[i]['coords']
         end_pt_val = end_pts[i]['val']
-
         end_pt_val_converted = convert_func(end_pt_val, 4, kneadings_len)
+        params1[param_to_index[param_x_name]] = end_pt_param_x
+        params1[param_to_index[param_y_name]] = end_pt_param_y
+
+        start_pt_param_x, start_pt_param_y = start_pts[i]['coords']
+        start_pt_val = start_pts[i]['val']
         start_pt_val_converted = convert_func(start_pt_val, 4, kneadings_len)
+        params2[param_to_index[param_x_name]] = start_pt_param_x
+        params2[param_to_index[param_y_name]] = start_pt_param_y
 
-        params1 = [default_w, end_pt_a, end_pt_b, default_r]
-        params2 = [default_w, start_pt_a, start_pt_b, default_r]
         params_set = [params1, params2]
-
         print(f"Generating phase portrait for point {i}:\n"
-              f"from ({end_pt_a:.13f}, {end_pt_b:.13f}) to ({start_pt_a:.13f}, {start_pt_b:.13f}),\n"
+              f"from ({end_pt_param_x:.13f}, {end_pt_param_y:.13f}) to ({start_pt_param_x:.13f}, {start_pt_param_y:.13f}),\n"
               f"from {end_pt_val_converted} to {start_pt_val_converted}")
 
         draw_saddle_wrapper = partial(plot_saddle_at_sepbif, params1=params1, params2=params2,
-                                      threshold=0.15, n=30000, dt=0.01)
+                                      threshold=0.25, n=30000, dt=0.01)
 
         plot_attractors_plt(
             params_set,

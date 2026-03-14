@@ -6,34 +6,8 @@ from ast import literal_eval
 from lib.computation_template.workers_utils import makeFinalOutname
 from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
 from src.system_analysis.thetrahedron import *
-from src.computing.engines_kneadings_fbpo import save_kneadings_data, get_kneadings_data
-
-
-view_1 = {
-    "elev": 60,
-    "azim": 160,
-    "roll": 0,
-    "xlim_left": 0,
-    "xlim_right": 3,
-    "ylim_left": 1.5,
-    "ylim_right": 4.5,
-    "zlim_left": 0,
-    "zlim_right": 6.14
-}
-
-view_2 = {
-    "elev": 0,
-    "azim": 90,
-    "roll": 0,
-    "xlim_left": 0.5,
-    "xlim_right": 2.25,
-    "ylim_left": 1.5,
-    "ylim_right": 4.5,
-    "zlim_left": 3.5,
-    "zlim_right": 5
-}
-
-views = [view_1, view_2]
+from src.computing.engines_kneadings_fbpo import (save_kneadings_data, get_kneadings_data, get_kneadings_records_data,
+                                                  get_mode_map_data, get_inits_data)
 
 
 def get_grid_points_along_line(data, pt1, pt2):
@@ -125,8 +99,12 @@ def map_out_route_on_kneadings_set(config, output_suffix, get_target_points_func
                                    plot_target_attractors_func=None, convert_func=None):
     """General function for routing given kneading slice"""
 
-    kneadings_data, mode_map_data, inits, nones, _ = get_kneadings_data(config['kneadings']['input_data'])
-    only_map_flag = config['route']['only_map_flag']
+    kneadings_input_data_path = config['kneadings']['input_data']
+    kneadings_data = get_kneadings_data(kneadings_input_data_path)
+    kneadings_records = get_kneadings_records_data(kneadings_input_data_path)
+    mode_map_data = get_mode_map_data(kneadings_input_data_path)
+    inits, nones, inner_sf_set = get_inits_data(kneadings_input_data_path)
+    map_only = config['route']['map_only']
 
     pt1 = tuple(map(float, literal_eval(config['route']['start_pt'])))
     pt2 = tuple(map(float, literal_eval(config['route']['end_pt'])))
@@ -136,8 +114,7 @@ def map_out_route_on_kneadings_set(config, output_suffix, get_target_points_func
     saving_dir = os.path.join(output_dir, f"{config['output']['mask']}_{output_suffix}_{start_time}")
     os.makedirs(saving_dir, exist_ok=True)
 
-    views_dict = config['misc']['views']
-    views = list(views_dict.values())
+    views = config['misc']['views']
 
     # сбор репрезентативных точек
     print("Getting representative points...")
@@ -148,12 +125,12 @@ def map_out_route_on_kneadings_set(config, output_suffix, get_target_points_func
     print("Slicing the mode map...")
     slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, saving_dir)
 
-    if not only_map_flag:
+    if not map_only:
         # генерация аттракторов для каждой точки
         print("Plotting attractors for target points...")
         plot_target_attractors_func(config, views, saving_dir, target_pts, convert_func)
 
     # дублирование hdf5 файла в saving_directory с обновлённым значением задачи route в конфиге
     hdf5_outname = makeFinalOutname(config, {'targetDir': saving_dir}, "hdf5", start_time)
-    save_kneadings_data(hdf5_outname, kneadings_data, mode_map_data, inits, nones, config)
+    save_kneadings_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
     print("Dataset successfully saved")

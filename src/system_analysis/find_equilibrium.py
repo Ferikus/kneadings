@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 
@@ -47,6 +48,16 @@ def find_equilibrium_by_guess(rhs, jac, initial_guess, tol=1e-12):
     eq_obj = sf.getEquilibriumInfo(eq_coords, jac)
 
     return eq_obj
+
+
+def correct_equilibrium_coords(rhs, jac, initial_guess, tol=1e-12):
+    inner_sf = find_equilibrium_by_guess(rhs, jac, initial_guess, tol)
+    if inner_sf is not None:
+        return inner_sf.coordinates
+    else:
+        # raise ValueError("No equilibrium found")
+        print(f"Warning: Couldn't find equilibrium by given guess {initial_guess}. The guess itself will be used.")
+        return initial_guess
 
 
 if __name__ == "__main__":

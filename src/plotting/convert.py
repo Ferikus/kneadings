@@ -4,18 +4,17 @@ def decimal_to_number_system(num, system_num):
         return "Error"
     if num >= 1:
         raise ValueError("Number must be less than 1")
+    if num == 0:
+        return "0"
 
-    integer_part = int(num)
-    fractional_part = num - integer_part
+    sequence = ""
+    while num > 0:
+        num *= system_num
+        bit = int(num)
+        sequence += str(bit)
+        num -= bit
 
-    binary_fractional = ""
-    while fractional_part > 0 and len(binary_fractional) < 10:
-        fractional_part *= system_num
-        bit = int(fractional_part)
-        binary_fractional += str(bit)
-        fractional_part -= bit
-
-    return binary_fractional
+    return sequence
 
 
 def convert_heavy_tail_to_sequence(num, system_num, kneading_len):
@@ -24,7 +23,7 @@ def convert_heavy_tail_to_sequence(num, system_num, kneading_len):
     if sequence.isdigit():
         sequence = sequence[::-1]
         if len(sequence) < kneading_len:
-            sequence += '0' * (kneading_len - len(sequence))
+            sequence = '0' * (kneading_len - len(sequence)) + sequence
     return sequence
 
 

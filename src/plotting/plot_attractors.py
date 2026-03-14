@@ -1,3 +1,4 @@
+import os
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 # from mpl_toolkits.mplot3d import Axes3D
@@ -227,6 +228,8 @@ def plot_saddle_at_sepbif(ax, trajs, params1, params2, threshold, n, dt, ps=sf.S
 
 
 def plot_attractors_plt(params_set, views, plot_placeholder, start_pt=0, n=50000, dt=0.01, directory="", point_name=""):
+    assert directory != "" and point_name != "", "Enter directory name and point name"
+
     opacity = 1.0
     trajs = get_trajectories(params_set, n, dt)
 
@@ -245,7 +248,7 @@ def plot_attractors_plt(params_set, views, plot_placeholder, start_pt=0, n=50000
             color_group_idxs = [i for i, c in enumerate(point_colors) if c == color]
             for _, group in groupby(enumerate(color_group_idxs), key=lambda x: x[1] - x[0]):
                 idxs = [item[1] for item in list(group)]
-                ax.plot(traj[0][start_pt:][idxs], traj[1][start_pt:][idxs], traj[2][start_pt:][idxs], color=color, linewidth=1.5, zorder=2)
+                ax.plot(traj[0][start_pt:][idxs], traj[1][start_pt:][idxs], traj[2][start_pt:][idxs], color=color, linewidth=1.5)
             if start_pt == 0:
                 ax.scatter(traj[0][0], traj[1][0], traj[2][0], c='green', s=100, marker='D')
     else:
@@ -264,7 +267,7 @@ def plot_attractors_plt(params_set, views, plot_placeholder, start_pt=0, n=50000
     ax.set_zlabel('Z')
     ax.grid(True, alpha=0.3)
 
-    for view_num, view in enumerate(views):
+    for view_name, view in views.items():
         ax.view_init(elev=view['elev'], azim=view['azim'], roll=view['roll'])
         ax.set_xlim3d(view['xlim_left'], view['xlim_right'])
         ax.set_ylim3d(view['ylim_left'], view['ylim_right'])
@@ -272,7 +275,8 @@ def plot_attractors_plt(params_set, views, plot_placeholder, start_pt=0, n=50000
         ax.set_axis_off()
         plt.tight_layout()
 
-        assert directory != "" and point_name != "", "Enter directory name and point name"
-        plt.savefig(f"{directory}/{point_name}_view_{view_num}.pdf", bbox_inches='tight')
+        saving_dir = f"{directory}/{view_name}"
+        os.makedirs(saving_dir, exist_ok=True)
+        plt.savefig(f"{saving_dir}/{point_name}.pdf", bbox_inches='tight')
 
     plt.close(fig)

@@ -9,6 +9,7 @@ from src.system_analysis.find_equilibrium import find_equilibrium_by_guess
 def continue_equilibrium(rhs, jac, get_params, set_params, param_to_index, param_x_name, param_y_name, start_eq_coords,
                          up_n, down_n, left_n, right_n, up_step, down_step, left_step, right_step):
     """Продолжает состояние равновесия по сетке параметров"""
+    print(f"Continuing equilibrium starting from {start_eq_coords}")
     rows = up_n + down_n + 1
     cols = left_n + right_n + 1
     grid = [[None for _ in range(cols)] for _ in range(rows)]
@@ -64,10 +65,10 @@ def continue_equilibrium(rhs, jac, get_params, set_params, param_to_index, param
             # print(
             #     f"Node ({curr_i}, {curr_j}) | Equilibrium {eq_obj.coordinates} was found "
             #     f"with parameters ({curr_param_x:.3f}, {curr_param_y:.3f})")
-        else:
-            print(
-                f"Node ({curr_i}, {curr_j}) | No equilibrium was found "
-                f"with parameters ({curr_param_x:.3f}, {curr_param_y:.3f})")
+        # else:
+            # print(
+            #     f"Node ({curr_i}, {curr_j}) | No equilibrium was found "
+            #     f"with parameters ({curr_param_x:.3f}, {curr_param_y:.3f})")
 
     return grid
 
@@ -213,6 +214,32 @@ def find_inits_for_equilibrium_grid(sf_grid, dim, up_n, down_n, left_n, right_n,
     # print(f"\nNones: {nones}")
 
     return inits, nones
+
+
+def prepare_inner_sf_set(inner_sf_grid, dim, up_n, down_n, left_n, right_n):
+    """Готовит набор координат внутренних седло-фокусов"""
+    print("Preparing a set of inner saddle focus...")
+    inner_sf_set = np.empty(dim * (left_n + right_n + 1) * (up_n + down_n + 1))
+    nones_count = 0
+
+    for j in range(up_n + down_n + 1):
+        for i in range(left_n + right_n + 1):
+            index = i + j * (left_n + right_n + 1)
+
+            sf_obj = inner_sf_grid[j][i]
+            if sf_obj is not None:
+                sf_coords = sf_obj.coordinates
+                for k in range(dim):
+                    inner_sf_set[index * dim + k] = sf_coords[k]
+            else:
+                for k in range(dim):
+                    inner_sf_set[index * dim + k] = 0.
+                nones_count += 1
+
+    if nones_count > 0:
+        print(f"Warning: Inner saddle-focus got lost ({nones_count}). Default poincare section to be used")
+
+    return inner_sf_set
 
 
 def generate_parameters(start_param_x, start_param_y, up_n, down_n, left_n, right_n,
