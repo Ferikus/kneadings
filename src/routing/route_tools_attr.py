@@ -40,6 +40,8 @@ def plot_target_attractors_attr(config, views, saving_directory, plotting_data, 
     kneadings_start = kneadings_dict['kneadings_start']
     kneadings_end = kneadings_dict['kneadings_end']
 
+    img_ext = config['output']['imageExtension']
+
     params = [w, a, b, r]
     kneadings_len = kneadings_end - kneadings_start + 1
 
@@ -64,7 +66,8 @@ def plot_target_attractors_attr(config, views, saving_directory, plotting_data, 
             n=n,
             dt=dt,
             directory=saving_directory,
-            point_name=f"attr_{i}_{val_converted}"
+            point_name=f"attr_{i}_{val_converted}",
+            img_ext=img_ext
         )
 
 

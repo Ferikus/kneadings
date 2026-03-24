@@ -55,6 +55,8 @@ def plot_target_attractors_sepbif(config, views, saving_directory, target_pts, c
     start_pts = target_pts['start_pts']
     end_pts = target_pts['end_pts']
 
+    img_ext = config['output']['imageExtension']
+
     params1 = [w, a, b, r]
     params2 = [w, a, b, r]
     kneadings_len = kneadings_end - kneadings_start + 1
@@ -89,7 +91,8 @@ def plot_target_attractors_sepbif(config, views, saving_directory, target_pts, c
             n=n,
             dt=dt,
             directory=saving_directory,
-            point_name=f"sepbif_{i}_from_{end_pt_val_converted}_to_{start_pt_val_converted}"
+            point_name=f"sepbif_{i}_from_{end_pt_val_converted}_to_{start_pt_val_converted}",
+            img_ext=img_ext
         )
 
 

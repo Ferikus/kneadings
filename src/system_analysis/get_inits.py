@@ -220,6 +220,7 @@ def prepare_inner_sf_set(inner_sf_grid, dim, up_n, down_n, left_n, right_n):
     """Готовит набор координат внутренних седло-фокусов"""
     print("Preparing a set of inner saddle focus...")
     inner_sf_set = np.empty(dim * (left_n + right_n + 1) * (up_n + down_n + 1))
+    center_sf_coords = inner_sf_grid[down_n][left_n].coordinates
     nones_count = 0
 
     for j in range(up_n + down_n + 1):
@@ -233,7 +234,7 @@ def prepare_inner_sf_set(inner_sf_grid, dim, up_n, down_n, left_n, right_n):
                     inner_sf_set[index * dim + k] = sf_coords[k]
             else:
                 for k in range(dim):
-                    inner_sf_set[index * dim + k] = 0.
+                    inner_sf_set[index * dim + k] = center_sf_coords[k]
                 nones_count += 1
 
     if nones_count > 0:

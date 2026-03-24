@@ -50,7 +50,7 @@ def get_kneadings_records_data(input_data_dir):
     assert os.path.isfile(input_data_dir), f"Data file {os.path.abspath(input_data_dir)} does not exist"
 
     input_data = h5py.File(input_data_dir, 'r')
-    kneadings_records = input_data['kneadings_info']['kneadings_records']
+    kneadings_records = input_data['kneadings_info']['kneadings_records'][()].decode('utf-8')
 
     return kneadings_records
 

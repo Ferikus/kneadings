@@ -23,17 +23,17 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 125
-    right_n: 50
-    left_step: 0.002
-    right_step: 0.002
+    left_n: 940
+    right_n: 200
+    left_step: 0.00025
+    right_step: 0.00025
     name: a
     caption: \alpha
   second:
-    down_n: 100
-    up_n: 15
-    down_step: 0.002
-    up_step: 0.002
+    down_n: 452
+    up_n: 160
+    down_step: 0.00025
+    up_step: 0.00025
     name: b
     caption: \beta
 # name of the task to perform
@@ -44,10 +44,10 @@ task: kneadings
 sf_grid:
   start_eq: [0.0, 2.21648268, 4.47347482]
   inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
-  input_data: #'./output/a_b/petals/petals_2026-03-11_03-29-01.hdf5'
+  input_data: './output/a_b/petals/petals_2026-03-17_22-22-23.hdf5'
 kneadings:
   dt: 0.01
-  n: 50000
+  n: 200000
   stride: 1
   kneadings_start: 0
   kneadings_end: 7

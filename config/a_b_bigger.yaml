@@ -4,10 +4,10 @@
 # for studied system; system is always created with
 # these parameters first
 defaultSystem:
-  w: 0
+  w: 0.0
   a: -2.911209192326542
   b: -1.612684228842761
-  r: 1
+  r: 1.0
   param_to_index:
     w: 0
     a: 1
@@ -44,13 +44,13 @@ task: kneadings
 sf_grid:
   start_eq: [0.0, 2.30956058, 4.75652024]
   inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
-  input_data:
+  input_data: './output/a_b/bigger/bigger_1-1.hdf5'
 kneadings:
   dt: 0.01
   n: 150000
   stride: 1
-  kneadings_start: 8
-  kneadings_end: 15
+  kneadings_start: 0
+  kneadings_end: 7
   input_data:
 route:
   start_pt:
@@ -66,8 +66,8 @@ route:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/"
-  mask: curve_8-15
-  useTimestamp: ignore
+  mask: a_b_bigger
+  useTimestamp: file
   imageExtension: png
 # some functions might use additional keyword-arguments
 # we can pass them through "misc" dictionary
@@ -85,7 +85,7 @@ misc:
 #      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
 #      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
       figure.dpi: 72
-      savefig.dpi: 300
+      savefig.dpi: 600
   views:
     view_1:
       elev: 60

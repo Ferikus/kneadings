@@ -44,14 +44,14 @@ task: kneadings
 sf_grid:
   start_eq: [0.0, 2.30956058, 4.75652024]
   inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
-  input_data: './output/a_r/h1_vicinity/h1_vicinity_a_r_1-1.hdf5'
+  input_data: './output/a_r/h1_vicinity/a_r_h1_vicinity_1-1.hdf5'
 kneadings:
   dt: 0.01
-  n: 50000
+  n: 150000
   stride: 1
   kneadings_start: 0
-  kneadings_end: 2
-  input_data: './output/a_r/h1_vicinity/h1_vicinity_a_r_1-1.hdf5'
+  kneadings_end: 6
+  input_data:
 route:
   start_pt: (-3.25, 1.15)
   end_pt: (-2.75, 1.15)
@@ -66,7 +66,7 @@ route:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/a_r/h1_vicinity/"
-  mask: h1_vicinity_a_r
+  mask: a_r_h1_vicinity
   useTimestamp: file
   imageExtension: png
 # some functions might use additional keyword-arguments

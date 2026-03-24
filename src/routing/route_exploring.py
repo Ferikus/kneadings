@@ -61,6 +61,8 @@ def slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, save_dir):
     kneadings_end = kneadings_dict['kneadings_end']
     kneadings_len = kneadings_end - kneadings_start + 1
 
+    img_ext = config['output']['imageExtension']
+
     plot_settings = config['misc']['plot_settings']['default']
     accent_color = 'white'
 
@@ -79,7 +81,7 @@ def slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, save_dir):
     plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep "
               f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")
     plt.tight_layout()
-    plt.savefig(f"{save_dir}/map.pdf", bbox_inches='tight')
+    plt.savefig(f"{save_dir}/map.{img_ext}", bbox_inches='tight')
     plt.show()
 
 
@@ -104,6 +106,7 @@ def map_out_route_on_kneadings_set(config, output_suffix, get_target_points_func
     kneadings_records = get_kneadings_records_data(kneadings_input_data_path)
     mode_map_data = get_mode_map_data(kneadings_input_data_path)
     inits, nones, inner_sf_set = get_inits_data(kneadings_input_data_path)
+
     map_only = config['route']['map_only']
 
     pt1 = tuple(map(float, literal_eval(config['route']['start_pt'])))

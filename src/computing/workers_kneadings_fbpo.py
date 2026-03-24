@@ -10,11 +10,11 @@ import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 
 from src.computing.engines_kneadings_fbpo import (get_kneadings_data, get_inits_data, get_config_data,
-                                                  check_config_correspondence, save_kneadings_data)
+                                                  get_kneadings_records_data, check_config_correspondence,
+                                                  save_kneadings_data)
 from src.system_analysis.find_equilibrium import correct_equilibrium_coords
 from src.system_analysis.get_inits import (continue_equilibrium, continue_equilibrium_mp, get_eq_type_grid,
                                            find_inits_for_equilibrium_grid, generate_parameters, prepare_inner_sf_set)
-# from src.system_analysis.poincare_section import get_poincare_section_coeffs
 from src.cuda_sweep.sweep_fbpo import sweep
 from src.plotting.convert import convert_heavy_tail_to_sequence
 from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
@@ -57,10 +57,10 @@ def init_kneadings_fbpo(config, timeStamp):
     param_y = float(def_params[param_to_index[param_y_name]])
 
     if input_data_path is not None:
-        kneadings_data = get_kneadings_data(input_data_path)
-        inits, nones, inner_sf_set = get_inits_data(input_data_path)
         prev_config = get_config_data(input_data_path)
         check_config_correspondence(prev_config, config, ('sf_grid',))
+        kneadings_data = get_kneadings_data(input_data_path)
+        inits, nones, inner_sf_set = get_inits_data(input_data_path)
         _, _, params_x, params_y, _ = kneadings_data
     else:
         start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
@@ -74,7 +74,6 @@ def init_kneadings_fbpo(config, timeStamp):
 
             start_eq = correct_equilibrium_coords(reduced_rhs, reduced_jac, start_eq)
             inner_sf = correct_equilibrium_coords(reduced_rhs, reduced_jac, inner_sf_guess)
-            # coeffs_set = get_poincare_section_coeffs(inner_sf)
 
             with multiprocessing.Pool(processes=2) as pool:
                 args_start_eq = (reduced_rhs, reduced_jac, get_params, set_params,
@@ -126,6 +125,7 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
     stride = kneadings_dict['stride']
     kneadings_start = kneadings_dict['kneadings_start']
     kneadings_end = kneadings_dict['kneadings_end']
+    input_data_path = kneadings_dict['input_data']
 
     inits = initResult['inits']
     nones = initResult['nones']
@@ -133,41 +133,48 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
     params_y = initResult['params_y']
     inner_sf_set = initResult['inner_sf_set']
 
-    def_params = [w, a, b, r]
-    kneadings_len = kneadings_end - kneadings_start + 1
+    if input_data_path is not None:
+        prev_config = get_config_data(input_data_path)
+        check_config_correspondence(prev_config, config, ('sf_grid', 'kneadings',))
+        kneadings_data = get_kneadings_data(input_data_path)
+        kneadings_records = get_kneadings_records_data(input_data_path)
+        _, _, _, _, kneadings_weighted_sum_set = kneadings_data
+    else:
+        def_params = [w, a, b, r]
+        kneadings_len = kneadings_end - kneadings_start + 1
 
-    kneadings_weighted_sum_set = sweep(
-        inits,
-        nones,
-        params_x,
-        params_y,
-        def_params,
-        param_to_index,
-        param_x_name,
-        param_y_name,
-        up_n,
-        down_n,
-        left_n,
-        right_n,
-        dt,
-        n,
-        stride,
-        kneadings_start,
-        kneadings_end,
-        inner_sf_set
-    )
+        kneadings_weighted_sum_set = sweep(
+            inits,
+            nones,
+            params_x,
+            params_y,
+            def_params,
+            param_to_index,
+            param_x_name,
+            param_y_name,
+            up_n,
+            down_n,
+            left_n,
+            right_n,
+            dt,
+            n,
+            stride,
+            kneadings_start,
+            kneadings_end,
+            inner_sf_set
+        )
 
-    kneadings_records = ""
-    for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
-        kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 4, kneadings_len)
+        kneadings_records = ""
+        for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
+            kneading_weighted_sum = kneadings_weighted_sum_set[idx]
+            kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 4, kneadings_len)
 
-        # print(f"a: {params_x[idx]:.15f}, "
-        #       f"b: {params_y[idx]:.15f} => "
-        #       f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
-        kneadings_records = (kneadings_records + f"{param_x_name}: {params_x[idx]:.15f}, "
-                                                 f"{param_y_name}: {params_y[idx]:.15f} => "
-                                                 f"{kneading_symbolic} (Raw: {kneading_weighted_sum})\n")
+            # print(f"a: {params_x[idx]:.15f}, "
+            #       f"b: {params_y[idx]:.15f} => "
+            #       f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
+            kneadings_records = (kneadings_records + f"{param_x_name}: {params_x[idx]:.15f}, "
+                                                     f"{param_y_name}: {params_y[idx]:.15f} => "
+                                                     f"{kneading_symbolic} (Raw: {kneading_weighted_sum})\n")
 
     return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set, 'kneadings_records': kneadings_records}
 
@@ -216,6 +223,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     fig = plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings)
     plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep "
               f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")
+    plt.show()
 
     with io.BytesIO() as buff:
         fig.savefig(buff, format='raw')
@@ -240,8 +248,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
 
     img_extension = config['output']['imageExtension']
     plot_outname = makeFinalOutname(config, initResult, img_extension, startTime)
-    plt.savefig(plot_outname, bbox_inches='tight')
-    plt.close()
+    fig.savefig(plot_outname, bbox_inches='tight')
     print("Mode map successfully saved")
 
     # пример восстановления картинки из hdf файла

@@ -227,7 +227,7 @@ def plot_saddle_at_sepbif(ax, trajs, params1, params2, threshold, n, dt, ps=sf.S
         print("No saddle equilibrium found near divergence point")
 
 
-def plot_attractors_plt(params_set, views, plot_placeholder, start_pt=0, n=50000, dt=0.01, directory="", point_name=""):
+def plot_attractors_plt(params_set, views, plot_placeholder, start_pt=0, n=50000, dt=0.01, directory="", point_name="", img_ext="png"):
     assert directory != "" and point_name != "", "Enter directory name and point name"
 
     opacity = 1.0
@@ -257,7 +257,7 @@ def plot_attractors_plt(params_set, views, plot_placeholder, start_pt=0, n=50000
             if start_pt == 0:
                 ax.scatter(traj[0][0], traj[1][0], traj[2][0], c='green', s=100, marker='D')
             ax.plot(traj[0][start_pt:], traj[1][start_pt:], traj[2][start_pt:],
-                    color=next(cycle_colors), linewidth=(i+1)*1.5)
+                    color=next(cycle_colors), linewidth=1.5)  # (i+1)*1.5
 
     if plot_placeholder is not None:
         plot_placeholder(ax, trajs)
@@ -277,6 +277,6 @@ def plot_attractors_plt(params_set, views, plot_placeholder, start_pt=0, n=50000
 
         saving_dir = f"{directory}/{view_name}"
         os.makedirs(saving_dir, exist_ok=True)
-        plt.savefig(f"{saving_dir}/{point_name}.pdf", bbox_inches='tight')
+        plt.savefig(f"{saving_dir}/{point_name}.{img_ext}", bbox_inches='tight')
 
     plt.close(fig)
