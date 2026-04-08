@@ -37,22 +37,27 @@ grid:
     name: b
     caption: \beta
 # name of the task to perform
-task: kneadings
+task: route
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
 sf_grid:
   start_eq: [0.0, 2.309560584015542, 4.756520197312062]
   inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
-  input_data:
+  input_data: './output/test_2026-04-06_21-45-40.hdf5'
 kneadings:
   dt: 0.01
   n: 150000
   stride: 1
   kneadings_start: 0
   kneadings_end: 2
-  input_data:
+  input_data: './output/test_2026-04-06_21-45-40.hdf5'
+# route task
+# "mode": "attr" or "sepbif"
+# - "attr": analyzes attractors on the route
+# - "sepbif": analyzes separatrix bifurcations on the route
 route:
+  mode:
   start_pt: (-2.920, -1.615) #(-2.9195, -1.620)
   end_pt: (-2.911, -1.615) #(-2.910209192326542, -1.611684228842761)
   map_only: 0
@@ -91,9 +96,9 @@ misc:
       elev: 60
       azim: 160
       roll: 0
-      xlim_left: 0
-      xlim_right: 3
-      ylim_left: 1.5
+      xlim_left: 0.45
+      xlim_right: 3.15
+      ylim_left: 1.8
       ylim_right: 4.5
       zlim_left: 0
       zlim_right: 6.14

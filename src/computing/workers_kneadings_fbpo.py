@@ -137,12 +137,9 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
         prev_config = get_config_data(input_data_path)
         check_config_correspondence(prev_config, config, ('sf_grid', 'kneadings',))
         kneadings_data = get_kneadings_data(input_data_path)
-        kneadings_records = get_kneadings_records_data(input_data_path)
         _, _, _, _, kneadings_weighted_sum_set = kneadings_data
     else:
         def_params = [w, a, b, r]
-        kneadings_len = kneadings_end - kneadings_start + 1
-
         kneadings_weighted_sum_set = sweep(
             inits,
             nones,
@@ -164,28 +161,26 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
             inner_sf_set
         )
 
-        kneadings_records = ""
-        for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
-            kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-            kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 4, kneadings_len)
+        # kneadings_len = kneadings_end - kneadings_start + 1
+        # for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
+        #     kneading_weighted_sum = kneadings_weighted_sum_set[idx]
+        #     kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 4, kneadings_len)
+        #     print(f"a: {params_x[idx]:.15f}, "
+        #           f"b: {params_y[idx]:.15f} => "
+        #           f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
 
-            # print(f"a: {params_x[idx]:.15f}, "
-            #       f"b: {params_y[idx]:.15f} => "
-            #       f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
-            kneadings_records = (kneadings_records + f"{param_x_name}: {params_x[idx]:.15f}, "
-                                                     f"{param_y_name}: {params_y[idx]:.15f} => "
-                                                     f"{kneading_symbolic} (Raw: {kneading_weighted_sum})\n")
-
-    return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set, 'kneadings_records': kneadings_records}
+    return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set}
 
 
 @register(registry, 'post', 'kneadings')
 def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     grid_dict = config['grid']
     param_x_caption = grid_dict['first']['caption']
+    param_x_name = grid_dict['first']['name']
     left_n = grid_dict['first']['left_n']
     right_n = grid_dict['first']['right_n']
     param_y_caption = grid_dict['second']['caption']
+    param_y_name = grid_dict['second']['name']
     up_n = grid_dict['second']['up_n']
     down_n = grid_dict['second']['down_n']
 
@@ -203,7 +198,6 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     plot_settings = config['misc']['plot_settings']['default']
 
     kneadings_weighted_sum_set = workerResult['kneadings_weighted_sum_set']
-    kneadings_records = workerResult['kneadings_records']
 
     idxs_x = []
     idxs_y = []
@@ -237,9 +231,13 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
 
     # СОХРАНЕНИЕ
 
-    hdf5_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
-    save_kneadings_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
-    print("Dataset successfully saved")
+    kneadings_records = ""
+    for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
+        kneading_weighted_sum = kneadings_weighted_sum_set[idx]
+        kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 4, kneadings_len)
+        kneadings_records = (kneadings_records + f"{param_x_name}: {params_x[idx]:.15f}, "
+                                                 f"{param_y_name}: {params_y[idx]:.15f} => "
+                                                 f"{kneading_symbolic} (Raw: {kneading_weighted_sum})\n")
 
     txt_outname = makeFinalOutname(config, initResult, "txt", startTime)
     with open(txt_outname, 'w') as txt_output:
@@ -258,3 +256,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     #     plt.axis('off')
     #     plt.tight_layout()
     #     plt.savefig(plot_outname_jpg, dpi=600, bbox_inches='tight')
+
+    hdf5_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
+    save_kneadings_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
+    print("Dataset successfully saved")

@@ -2,7 +2,7 @@ from itertools import groupby
 from functools import partial
 
 from src.plotting.convert import convert_heavy_tail_to_sequence
-from src.plotting.plot_attractors import plot_attractors_plt, plot_saddle_at_sepbif
+from src.plotting.plot_attractors import plot_attractors_plt, plot_saddle_at_sepbif, get_sf_on_a_face_trajectories
 from src.routing.route_exploring import *
 
 
@@ -76,20 +76,19 @@ def plot_target_attractors_sepbif(config, views, saving_directory, target_pts, c
         params2[param_to_index[param_y_name]] = start_pt_param_y
 
         params_set = [params1, params2]
-        print(f"Generating phase portrait for point {i}:\n"
-              f"from ({end_pt_param_x:.13f}, {end_pt_param_y:.13f}) to ({start_pt_param_x:.13f}, {start_pt_param_y:.13f}),\n"
-              f"from {end_pt_val_converted} to {start_pt_val_converted}")
+        trajs = get_sf_on_a_face_trajectories(params_set, n, dt)
 
         draw_saddle_wrapper = partial(plot_saddle_at_sepbif, params1=params1, params2=params2,
                                       threshold=0.25, n=30000, dt=0.01)
 
+        print(f"Generating phase portrait for point {i}:\n"
+              f"from ({end_pt_param_x:.13f}, {end_pt_param_y:.13f}) to ({start_pt_param_x:.13f}, {start_pt_param_y:.13f}),\n"
+              f"from {end_pt_val_converted} to {start_pt_val_converted}")
         plot_attractors_plt(
-            params_set,
+            trajs,
             views,
             plot_placeholder=draw_saddle_wrapper,
             start_pt=0,
-            n=n,
-            dt=dt,
             directory=saving_directory,
             point_name=f"sepbif_{i}_from_{end_pt_val_converted}_to_{start_pt_val_converted}",
             img_ext=img_ext

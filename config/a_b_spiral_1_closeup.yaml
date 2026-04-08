@@ -37,7 +37,7 @@ grid:
     name: b
     caption: \beta
 # name of the task to perform
-task: kneadings
+task: route
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
@@ -51,10 +51,15 @@ kneadings:
   stride: 1
   kneadings_start: 0
   kneadings_end: 9
-  input_data:
+  input_data: './output/a_b/spiral_1/a_b_spiral_1_closeup_1-10.hdf5'
+# route task
+# "mode": "attr" or "sepbif"
+# - "attr": analyzes attractors on the route
+# - "sepbif": analyzes separatrix bifurcations on the route
 route:
-  start_pt:
-  end_pt:
+  mode:
+  start_pt: (-2.87860, -1.67886) #(-2.87858, -1.67888)
+  end_pt: (-2.87858, -1.67884) #(-2.87856, -1.67886)
   map_only: 0
 # information for saving files
 # "directory": where save it
@@ -66,7 +71,7 @@ route:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/a_b/spiral_1/"
-  mask: a_b_spiral_1
+  mask: a_b_spiral_1_closeup
   useTimestamp: file
   imageExtension: png
 # some functions might use additional keyword-arguments
@@ -91,9 +96,9 @@ misc:
       elev: 60
       azim: 160
       roll: 0
-      xlim_left: 0
-      xlim_right: 3
-      ylim_left: 1.5
+      xlim_left: 0.45
+      xlim_right: 3.15
+      ylim_left: 1.8
       ylim_right: 4.5
       zlim_left: 0
       zlim_right: 6.14

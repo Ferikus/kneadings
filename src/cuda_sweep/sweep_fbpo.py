@@ -279,14 +279,7 @@ def set_inner_sf_poincare_section_coeffs(domain_num, inner_sf, coeffs):
 
 @cuda.jit(device=True)
 def set_poincare_section_coeffs(domain_num, inner_sf, coeffs):
-    all_zero = False
-    if inner_sf[0] == 0 and inner_sf[1] == 0 and inner_sf[2] == 0:
-        all_zero = True
-
-    if all_zero:
-        set_default_poincare_section_coeffs(domain_num, coeffs)
-    else:
-        set_inner_sf_poincare_section_coeffs(domain_num, inner_sf, coeffs)
+    set_inner_sf_poincare_section_coeffs(domain_num, inner_sf, coeffs)
 
 
 @cuda.jit(device=True)
@@ -358,8 +351,8 @@ def make_integrator_rk4(event_condition, kneading_encoder):
             for j in range(stride):
                 stepper_rk4(params, y_curr, dt)
 
-            for k in range(DIM_REDUCED):
-                if y_curr[k] > INFINITY or y_curr[k] < -INFINITY:
+            for j in range(DIM_REDUCED):
+                if abs(y_curr[j]) > INFINITY:
                     return InfinityError
 
             reduced_rhs(params, y_curr, rhs)

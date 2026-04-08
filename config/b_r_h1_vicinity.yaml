@@ -52,7 +52,12 @@ kneadings:
   kneadings_start: 0
   kneadings_end: 3
   input_data:
+# route task
+# "mode": "attr" or "sepbif"
+# - "attr": analyzes attractors on the route
+# - "sepbif": analyzes separatrix bifurcations on the route
 route:
+  mode:
   start_pt: (-3.25, 1.15)
   end_pt: (-2.75, 1.15)
   map_only: 0
@@ -91,9 +96,9 @@ misc:
       elev: 60
       azim: 160
       roll: 0
-      xlim_left: 0
-      xlim_right: 3
-      ylim_left: 1.5
+      xlim_left: 0.45
+      xlim_right: 3.15
+      ylim_left: 1.8
       ylim_right: 4.5
       zlim_left: 0
       zlim_right: 6.14

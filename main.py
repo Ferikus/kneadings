@@ -32,18 +32,15 @@ if __name__ == "__main__":
         kneadings_config = get_config_data(kneadings_input_data_path)
         check_config_correspondence(kneadings_config, config, ('sf_grid', 'kneadings'))
 
-        print("1. Analyze attractors on the route")
-        print("2. Analyze separatrix bifurcations on the route")
-        selected = int(input())
-
-        if selected == 1:
+        selected = config['route']['mode']
+        if selected == "attr":
             map_out_attr_route_on_kneadings_set(config)
-        elif selected == 2:
+        elif selected == "sepbif":
             map_out_sepbif_route_on_kneadings_set(config)
         else:
-            raise ValueError("Please select an option from the list")
+            raise ValueError("No such option for a route mode")
 
     else:
-        raise ValueError("Please select the task in the config")
+        raise ValueError("No task selected in the config")
 
 

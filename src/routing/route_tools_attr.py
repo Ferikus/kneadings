@@ -1,7 +1,7 @@
 from itertools import groupby
 
 from src.plotting.convert import convert_heavy_tail_to_sequence
-from src.plotting.plot_attractors import plot_attractors_plt
+from src.plotting.plot_attractors import plot_attractors_plt, get_sf_on_a_face_trajectories, plot_thetrahedron
 from src.routing.route_exploring import *
 
 
@@ -54,17 +54,15 @@ def plot_target_attractors_attr(config, views, saving_directory, plotting_data, 
 
         params[param_to_index[param_x_name]] = param_x
         params[param_to_index[param_y_name]] = param_y
-        params_set = [params]
+
+        trajs = get_sf_on_a_face_trajectories([params], n, dt)
 
         print(f"Generating phase portrait for point {i}: ({param_x:.13f}, {param_y:.13f}) at sequence {val_converted}")
-
         plot_attractors_plt(
-            params_set,
+            trajs,
             views=views,
-            plot_placeholder=None,
+            plot_placeholder=plot_thetrahedron,
             start_pt=0,
-            n=n,
-            dt=dt,
             directory=saving_directory,
             point_name=f"attr_{i}_{val_converted}",
             img_ext=img_ext
