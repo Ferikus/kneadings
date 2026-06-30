@@ -35,6 +35,11 @@ def compress_sequence_lz76(seq):
 
 
 if __name__ == "__main__":
-    seq = "01230123"
+    seq = "012301230"
     print(compress_sequence_lz76(seq))
     print(correct_sequence_period(seq))
+
+    # match_index = (seq + seq).find(seq, 1)
+    # if match_index < len(seq):
+    #     # Период найден
+    #     print(f"REGULAR (p={match_index}, norm={seq})")

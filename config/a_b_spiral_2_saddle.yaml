@@ -5,9 +5,9 @@
 # these parameters first
 defaultSystem:
   w: 0.0
-  a: -3.075
-  b: -1.597
-  r: 1.01
+  a: -3.075199
+  b: -1.597063
+  r: 0.99956
   param_to_index:
     w: 0
     a: 1
@@ -22,18 +22,18 @@ defaultSystem:
 # "steps": how many nodes between [min, max] including endpoints
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
-  first:
+  first: # reduce the grid
     left_n: 250
     right_n: 250
-    left_step: 0.0001
-    right_step: 0.0001
+    left_step: 0.00005
+    right_step: 0.00005
     name: a
     caption: \alpha
   second:
     down_n: 200
     up_n: 200
-    down_step: 0.0001
-    up_step: 0.0001
+    down_step: 0.00005
+    up_step: 0.00005
     name: b
     caption: \beta
 # name of the task to perform
@@ -71,7 +71,7 @@ route:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/"
-  mask: a_b_spiral_2
+  mask: a_b_spiral_2_saddle
   useTimestamp: file
   imageExtension: png
 # some functions might use additional keyword-arguments

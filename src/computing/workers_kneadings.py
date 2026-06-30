@@ -5,28 +5,25 @@ import matplotlib.pyplot as plt
 import io
 import multiprocessing
 
-from lib.computation_template.workers_utils import register, makeFinalOutname
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 
-from src.computing.engines_kneadings_fbpo import (get_kneadings_data, get_inits_data, get_config_data,
-                                                  get_kneadings_records_data, check_config_correspondence,
-                                                  save_kneadings_data)
+from src.computing.engines import (get_kneadings_data, get_inits_data, get_config_data,
+                                   check_config_correspondence, save_data)
 from src.system_analysis.find_equilibrium import correct_equilibrium_coords
-from src.system_analysis.get_inits import (continue_equilibrium, continue_equilibrium_mp, get_eq_type_grid,
-                                           find_inits_for_equilibrium_grid, generate_parameters, prepare_inner_sf_set)
+from src.system_analysis.get_inits import (continue_equilibrium, get_eq_type_grid, find_inits_for_equilibrium_grid,
+                                           generate_parameters, prepare_inner_sf_set)
 from src.cuda_sweep.sweep_fbpo import sweep
-from src.plotting.convert import convert_heavy_tail_to_sequence
-from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
+from src.system_analysis.convert import convert_heavy_tail_to_sequence
+from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map, get_continuous_cmap
+from src.routing.route_exploring import get_grid_points_along_line
 
-registry = {
-    "worker": {},
-    "init": {},
-    "post": {}
-}
+### to connect with workers file
+from lib.computation_template.workers_utils import register, makeFinalOutname
+from src.computing.workers import registry
 
 
-@register(registry, 'init', 'kneadings')
+@register(registry, 'init', 'kneadings', 'periodicity', 'symmetry_detectives')
 def init_kneadings_fbpo(config, timeStamp):
     def_sys_dict = config['defaultSystem']
     w = def_sys_dict['w']
@@ -161,14 +158,6 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
             inner_sf_set
         )
 
-        # kneadings_len = kneadings_end - kneadings_start + 1
-        # for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
-        #     kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        #     kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 4, kneadings_len)
-        #     print(f"a: {params_x[idx]:.15f}, "
-        #           f"b: {params_y[idx]:.15f} => "
-        #           f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
-
     return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set}
 
 
@@ -213,10 +202,26 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
                       kneadings_weighted_sum_set]
 
     def set_color_map():
-        return set_random_color_map(4, kneadings_len)
+        if kneadings_len < 20:
+            return set_random_color_map(4, kneadings_len)
+        else:
+            return get_continuous_cmap()
     fig = plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings)
     plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep "
               f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")
+
+    def onclick(event):
+        xdata = event.xdata
+        ydata = event.ydata
+
+        pts_idxs, pts_coords, pts_vals = get_grid_points_along_line(kneadings_data, (xdata, ydata), (xdata, ydata), 1)
+        pt_idx, pt_coords, pt_kneading_weighted = pts_idxs[0], pts_coords[0], pts_vals[0]
+        pt_kneading_symbolic = convert_heavy_tail_to_sequence(pt_kneading_weighted, 4, kneadings_len)
+
+        print(f"Clicked at node {pt_idx} with parameters {param_x_name}={pt_coords[0]:.15f}, {param_y_name}={pt_coords[1]:.15f}, "
+              f"kneading {pt_kneading_symbolic}")
+
+    fig.canvas.mpl_connect('button_press_event', onclick)
     plt.show()
 
     with io.BytesIO() as buff:
@@ -229,7 +234,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     h = int(h_inch * save_dpi)
     mode_map_data = mode_map_data.reshape((h, w, -1))
 
-    # СОХРАНЕНИЕ
+    # SAVING
 
     kneadings_records = ""
     for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
@@ -258,5 +263,5 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     #     plt.savefig(plot_outname_jpg, dpi=600, bbox_inches='tight')
 
     hdf5_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
-    save_kneadings_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
+    save_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
     print("Dataset successfully saved")

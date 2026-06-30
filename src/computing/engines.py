@@ -3,6 +3,9 @@ import time
 import datetime
 import h5py
 import yaml
+import matplotlib.pyplot as plt
+
+from src.plotting.plot_mode_map import plot_mode_map, make_set_color_map
 
 
 def get_kneadings_data(input_data_dir):
@@ -65,13 +68,14 @@ def get_config_data(input_data_dir):
     return config
 
 
-def save_kneadings_data(h5py_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config):
-    """Saves all the results from kneadings computing stage"""
+def save_data(h5py_outname, data, records, mode_map_data, inits, nones, inner_sf_set, config):
+    """Saves all the results from computing stage"""
+    task_name = config['task']
     with h5py.File(h5py_outname, 'w') as main_folder:
-        kneadings_info = main_folder.create_group('kneadings_info')
-        kneadings_info.create_dataset('kneadings_data', data=kneadings_data)
-        kneadings_info.create_dataset('kneadings_records', data=kneadings_records)
-        kneadings_info.create_dataset('mode_map_data', data=mode_map_data)
+        data_info = main_folder.create_group(f'{task_name}_info')
+        data_info.create_dataset(f'{task_name}_data', data=data)
+        data_info.create_dataset(f'{task_name}_records', data=records)
+        data_info.create_dataset('mode_map_data', data=mode_map_data)
 
         sf_grid_info = main_folder.create_group('sf_grid_info')
         sf_grid_info.create_dataset('inits', data=inits)
@@ -96,6 +100,28 @@ def check_config_correspondence(prev_config, curr_config, task_names):
         prev_task_dict.pop('input_data', None)
         curr_task_dict.pop('input_data', None)
         assert prev_task_dict == curr_task_dict, f"Task {task_name} parameters in configs differ"
+
+
+def get_params_from_config(data_path):
+    config = get_config_data(data_path)
+    sys_dict = config['defaultSystem']
+    params = [sys_dict['w'], sys_dict['a'], sys_dict['b'], sys_dict['r']]
+    return params
+
+
+def plot_mode_map_by_config(data_path):
+    kneadings_data = get_kneadings_data(data_path)
+    config = get_config_data(data_path)
+    param_x_caption = config['grid']['first']['caption']
+    param_y_caption = config['grid']['second']['caption']
+    plot_settings = config['misc']['plot_settings']['default']
+    kneadings_start = config['kneadings']['kneadings_start']
+    kneadings_end = config['kneadings']['kneadings_end']
+    kneadings_len = kneadings_end - kneadings_start + 1
+    set_color_map = make_set_color_map(kneadings_len)
+    fig = plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings)
+    plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep of [{kneadings_start + 1}-{kneadings_end + 1}] length")
+    return fig
 
 
 def general_engine(worker, configDict, startTime, initResult, dataGrid):

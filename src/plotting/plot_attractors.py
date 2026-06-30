@@ -8,10 +8,10 @@ from itertools import groupby
 
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
-from tests.cpu_version import bary_expansion, get_domain_num, stepper_rk4
+from tests.cpu_version import bary_expansion, get_domain_num, stepper_rk4, make_integrator_rk4, event_cross_plane, heavy_tail
 from src.system_analysis.thetrahedron import *
 from src.system_analysis.get_inits import find_equilibrium_by_guess
-from src.system_analysis.find_equilibrium import find_init_pts
+from src.system_analysis.find_equilibrium import correct_equilibrium_coords, find_init_pts
 
 view_1 = {
     'elev': 60,
@@ -99,18 +99,35 @@ def get_eqs_on_inv_plane(params):
     return all_symm_eqs
 
 
-def get_sf_on_a_face_trajectory(params, n, dt):
+def get_face_sf_trajectory(params, n, dt):
     sys = so.FourBiharmonicPhaseOscillators(*params)
     init_psis = list(find_init_pts(sys))
     traj = compute_trajectory(init_psis, params, n, dt)
     return traj
 
 
-def get_sf_on_a_face_trajectories(params_set, n, dt):
+def get_face_sf_trajectories(params_set, n, dt):
     trajs = []
     for params in params_set:
-        trajs.append(get_sf_on_a_face_trajectory(params, n, dt))
+        trajs.append(get_face_sf_trajectory(params, n, dt))
     return trajs
+
+
+def get_kneadings_trajectory(params, dt, n, stride, kneadings_start, kneadings_end, debug=True):
+    event_condition = event_cross_plane
+    kneading_evaluator = heavy_tail
+    integrator_rk4 = make_integrator_rk4(event_condition, kneading_evaluator)
+
+    sys = so.FourBiharmonicPhaseOscillators(*params)
+    reduced_rhs = sys.getReducedSystem
+    reduced_jac = sys.getReducedSystemJac
+
+    y_curr = list(find_init_pts(sys))
+    inner_sf = [1.427257804280822, 3.2091500304528755, 4.414529919493724]
+    inner_sf = correct_equilibrium_coords(reduced_rhs, reduced_jac, inner_sf)
+
+    kneadings_weighted_sum, trajectory, ns, extrs, last_n = integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end, inner_sf=inner_sf, debug=debug)
+    return kneadings_weighted_sum, trajectory, ns, extrs, last_n
 
 
 # def plot_all_equilibrium(ax, eq_coords_list, rhs_jac, ps=sf.STD_PRECISION):
@@ -256,16 +273,16 @@ def plot_attractors_plt(trajs, views, plot_placeholder, start_pt=0, directory=""
             color_group_idxs = [i for i, c in enumerate(point_colors) if c == color]
             for _, group in groupby(enumerate(color_group_idxs), key=lambda x: x[1] - x[0]):
                 idxs = [item[1] for item in list(group)]
-                ax.plot(traj[0][start_pt:][idxs], traj[1][start_pt:][idxs], traj[2][start_pt:][idxs], color=color, linewidth=2)
+                ax.plot(traj[0][start_pt:][idxs], traj[1][start_pt:][idxs], traj[2][start_pt:][idxs], color=color)
             if start_pt == 0:
                 ax.scatter(traj[0][0], traj[1][0], traj[2][0], c=color_palette['green'], s=100, marker='D')
     else:
-        cycle_colors = cycle(mcolors.TABLEAU_COLORS)  # ['orange', 'magenta', 'lime', 'cyan']
+        cycle_colors = cycle(['tab:red', 'tab:green', 'tab:blue', 'tab:pink'])  # cycle(mcolors.TABLEAU_COLORS)
         for i, traj in enumerate(trajs):
             if start_pt == 0:
-                ax.scatter(traj[0][0], traj[1][0], traj[2][0], c=color_palette['green'], s=100, marker='D')
+                ax.scatter(traj[0][0], traj[1][0], traj[2][0], c='tab:green', s=100, marker='D')
             ax.plot(traj[0][start_pt:], traj[1][start_pt:], traj[2][start_pt:],
-                    color=next(cycle_colors), linewidth=2)  # (i+1)*1.5
+                    color=next(cycle_colors))  # (i+1)*1.5
 
     if plot_placeholder is not None:
         plot_placeholder(ax, trajs)

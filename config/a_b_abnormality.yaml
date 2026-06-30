@@ -5,8 +5,8 @@
 # these parameters first
 defaultSystem:
   w: 0.0
-  a: -2.911209192326542
-  b: -1.612684228842761
+  a: -3.1541
+  b: -1.6176
   r: 1.0
   param_to_index:
     w: 0
@@ -23,20 +23,21 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 500
-    right_n: 900
-    left_step: 0.0005
-    right_step: 0.0005
+    left_n: 450
+    right_n: 750
+    left_step: 0.00003
+    right_step: 0.00003
     name: a
     caption: \alpha
   second:
-    down_n: 450
-    up_n: 60
-    down_step: 0.0005
-    up_step: 0.0005
+    down_n: 540
+    up_n: 660
+    down_step: 0.00003
+    up_step: 0.00003
     name: b
     caption: \beta
 # name of the task to perform
+# kneaings / periodicity / route
 task: periodicity
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
@@ -44,21 +45,25 @@ task: periodicity
 sf_grid:
   start_eq: [0.0, 2.30956058, 4.75652024]
   inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
-  input_data: './output/a_b_bigger_2026-06-06_17-28-08.hdf5'
+  input_data:
 kneadings:
   dt: 0.01
-  n: 150000
+  n:
   stride: 1
-  kneadings_start: 0
-  kneadings_end: 7
+  kneadings_start:
+  kneadings_end:
   input_data:
 periodicity:
   dt: 0.01
-  n: 100000000 # 10-25: 1000000
+  n: 5_000_000
   stride: 1
-  kneadings_start: 999
-  kneadings_end: 1999
-  input_data: './output/a_b_bigger_2026-06-06_17-28-08.hdf5'
+  kneadings_start: 100
+  kneadings_end: 599
+  input_data:
+symmetry_detectives:
+  dt: 0.01
+  nStepsSkip: 000_00
+  nStepsAttractor: 10000_00
 # route task
 # "mode": "attr" or "sepbif"
 # - "attr": analyzes attractors on the route
@@ -78,7 +83,7 @@ route:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/"
-  mask: a_b_bigger
+  mask: abnormality
   useTimestamp: file
   imageExtension: png
 # some functions might use additional keyword-arguments
@@ -97,7 +102,7 @@ misc:
 #      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
 #      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
       figure.dpi: 100
-      savefig.dpi: 1000
+      savefig.dpi: 800
   views:
     view_1:
       elev: 60

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 
 def set_random_color_map(system_dim, kneadings_len):
@@ -21,7 +21,7 @@ def set_random_color_map(system_dim, kneadings_len):
 
     # d принимает целые значения на отрезке [0; 2**q - 1]
     # дальше идёт обработка каналов до и после середины интервала
-    d_vals = np.arange(color_map_levels)
+    d_vals = np.arange(color_map_levels, dtype=np.int32)
     midpoint = (color_map_levels - 1) / 2.0
 
     red = np.zeros(color_map_levels)
@@ -56,56 +56,11 @@ def set_random_color_map(system_dim, kneadings_len):
 
     return custom_cmap
 
-    # третий способ R-B-R-B
-    # # количество цветов без ошибок
-    # color_map_levels = system_dim ** kneadings_len
-    #
-    # # d принимает целые значения на отрезке [0; 2**q - 1]
-    # d_vals = np.arange(color_map_levels)
-    #
-    # red = np.zeros(color_map_levels)
-    # blue = np.zeros(color_map_levels)
-    #
-    # # первая 1/4 отрезка -> в красный канал, синий = 0
-    # d1 = d_vals < (color_map_levels - 1) / 4.0
-    # d1_vals = d_vals[d1]
-    # d1_min = np.min(d1_vals)
-    # d1_max = np.max(d1_vals)
-    # d1_range_max = d1_max - d1_min
-    # red[d1] = (d1_vals - d1_min) / d1_range_max if d1_range_max != 0 else 0.0
-    #
-    # # вторая 1/4 отрезка -> в синий канал, красный = 0
-    # d2 = ((color_map_levels - 1) / 4.0 <= d_vals) & (d_vals < (color_map_levels - 1) / 2.0)
-    # d2_vals = d_vals[d2]
-    # d2_min = np.min(d2_vals)
-    # d2_max = np.max(d2_vals)
-    # d2_range_max = d2_max - d2_min
-    # blue[d2] = (d2_vals - d2_min) / d2_range_max if d2_range_max != 0 else 0.0
-    #
-    # # третья 1/4 отрезка -> в красный канал, синий = 0
-    # d3 = ((color_map_levels - 1) / 2.0 <= d_vals) & (d_vals < 3 * (color_map_levels - 1) / 4.0)
-    # d3_vals = d_vals[d3]
-    # d3_min = np.min(d3_vals)
-    # d3_max = np.max(d3_vals)
-    # d3_range_max = d3_max - d3_min
-    # red[d3] = (d3_vals - d3_min) / d3_range_max if d3_range_max != 0 else 0.0
-    #
-    # # четвёртая 1/4 отрезка -> в синий канал, красный = 0
-    # d4 = 3 * (color_map_levels - 1) / 4.0 <= d_vals
-    # d4_vals = d_vals[d4]
-    # d4_min = np.min(d4_vals)
-    # d4_max = np.max(d4_vals)
-    # d4_range_max = d4_max - d4_min
-    # blue[d4] = (d4_vals - d4_min) / d4_range_max if d4_range_max != 0 else 0.0
-    #
-    # # зелёный канал принимает случайные значения
-    # np.random.seed(7)
-    # green = np.random.random(color_map_levels) * 0.6 + 0.2
-    #
-    # RGB = np.column_stack((red, green, blue))
-    # custom_cmap = ListedColormap(RGB)
-    #
-    # return custom_cmap
+
+def make_set_color_map(kneadings_len):
+    def set_color_map():
+        return set_random_color_map(4, kneadings_len)
+    return set_color_map
 
 
 def set_mode_map_size(param_x_count, param_y_count):
@@ -148,7 +103,8 @@ def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_captio
                        np.ma.masked_where(special_mask, grid_matrix),
                        cmap=set_color_map(),
                        shading='nearest',
-                       vmin=0, vmax=1)
+                       vmin=0, vmax=1,
+                       rasterized=True)
 
     if np.any(special_mask):
         min_val = -1.0
@@ -163,7 +119,8 @@ def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_captio
                        gradient_data,
                        cmap='gray',
                        shading='nearest',
-                       vmin=0, vmax=1)
+                       vmin=0, vmax=1,
+                       rasterized=True)
 
     plt.xlabel(f'${param_x_caption}$')
     plt.ylabel(f'${param_y_caption}$')

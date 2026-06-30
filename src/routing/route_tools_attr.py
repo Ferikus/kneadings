@@ -1,8 +1,10 @@
 from itertools import groupby
 
-from src.plotting.convert import convert_heavy_tail_to_sequence
-from src.plotting.plot_attractors import plot_attractors_plt, get_sf_on_a_face_trajectories, plot_thetrahedron
+from src.system_analysis.convert import convert_heavy_tail_to_sequence
+from src.plotting.plot_attractors import plot_attractors_plt, get_face_sf_trajectory, plot_thetrahedron
 from src.routing.route_exploring import *
+from src.symmetry.histogram import getSymmetryTypeByHistogram
+from src.system_analysis.taskutils import t
 
 
 def get_target_points_attr(idxs, coords, vals):
@@ -35,12 +37,18 @@ def plot_target_attractors_attr(config, views, saving_directory, plotting_data, 
     param_y_name = grid_dict['second']['name']
 
     kneadings_dict = config['kneadings']
-    dt = kneadings_dict['dt']
-    n = kneadings_dict['n']
     kneadings_start = kneadings_dict['kneadings_start']
     kneadings_end = kneadings_dict['kneadings_end']
 
+    route_dict = config['route']
+    dt = route_dict['dt']
+    n = route_dict['n']
+    skip = route_dict['skip']
+
     img_ext = config['output']['imageExtension']
+
+    plot_settings = config['misc']['plot_settings']['default']
+    plt.rcParams.update(plot_settings)
 
     params = [w, a, b, r]
     kneadings_len = kneadings_end - kneadings_start + 1
@@ -55,16 +63,22 @@ def plot_target_attractors_attr(config, views, saving_directory, plotting_data, 
         params[param_to_index[param_x_name]] = param_x
         params[param_to_index[param_y_name]] = param_y
 
-        trajs = get_sf_on_a_face_trajectories([params], n, dt)
+        traj_t0 = np.array(get_face_sf_trajectory(params, n, dt))
+        traj_t1 = np.array(list(map(t, traj_t0.T))).T
+        traj_t2 = np.array(list(map(t, traj_t1.T))).T
+        trajs = [traj_t0, traj_t2, traj_t1]
 
-        print(f"Generating phase portrait for point {i}: ({param_x:.13f}, {param_y:.13f}) at sequence {val_converted}")
+        symm_type, symm_dist_t1, symm_dist_t2 = getSymmetryTypeByHistogram(traj_t0.T, nLevels=256, precision=0.1)
+
+        print(f"Generating phase portrait for point {i}: ({param_x:.13f}, {param_y:.13f}) at sequence {val_converted}\n"
+              f"with symmetry T{symm_type} (dist_t1: {symm_dist_t1}, dist_t2: {symm_dist_t2})")
         plot_attractors_plt(
             trajs,
             views=views,
             plot_placeholder=plot_thetrahedron,
-            start_pt=0,
+            start_pt=skip,
             directory=saving_directory,
-            point_name=f"attr_{i}_{val_converted}",
+            point_name=f"attr_{i}_{val_converted}_T{symm_type}",
             img_ext=img_ext
         )
 

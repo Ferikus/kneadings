@@ -1,8 +1,8 @@
 from itertools import groupby
 from functools import partial
 
-from src.plotting.convert import convert_heavy_tail_to_sequence
-from src.plotting.plot_attractors import plot_attractors_plt, plot_saddle_at_sepbif, get_sf_on_a_face_trajectories
+from src.system_analysis.convert import convert_heavy_tail_to_sequence
+from src.plotting.plot_attractors import plot_attractors_plt, plot_saddle_at_sepbif, get_face_sf_trajectories
 from src.routing.route_exploring import *
 
 
@@ -76,7 +76,7 @@ def plot_target_attractors_sepbif(config, views, saving_directory, target_pts, c
         params2[param_to_index[param_y_name]] = start_pt_param_y
 
         params_set = [params1, params2]
-        trajs = get_sf_on_a_face_trajectories(params_set, n, dt)
+        trajs = get_face_sf_trajectories(params_set, n, dt)
 
         draw_saddle_wrapper = partial(plot_saddle_at_sepbif, params1=params1, params2=params2,
                                       threshold=0.25, n=30000, dt=0.01)

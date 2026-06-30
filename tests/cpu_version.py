@@ -111,13 +111,12 @@ def event_cross_plane(state_prev, state_curr, inner_sf):
 
     if prev_domain == curr_domain:
         if prev_pl_val < 0 < curr_pl_val:
-            print(curr_domain)
             return True
     return False
 
 
 def make_integrator_rk4(event_condition, kneading_evaluator):
-    def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end, inner_sf):
+    def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end, inner_sf, debug=True):
         y_prev = y_curr.copy()
         kneading_index = 0
         kneadings_weighted_sum = 0
@@ -133,17 +132,31 @@ def make_integrator_rk4(event_condition, kneading_evaluator):
                 y_curr = stepper_rk4(params, y_curr, dt)
             trajectory[i] = y_curr.copy()
 
+            infinity_flag = 0
             for k in range(DIM_REDUCED):
                 if y_curr[k] > INFINITY or y_curr[k] < -INFINITY:
-                    return InfinityError, None, None, None, i
+                    infinity_flag = 1
+            if infinity_flag:
+                break
+
+            # print(abs(y_curr[0]), abs(y_curr[1]), abs(y_curr[2]))
+            if abs(y_curr[0]) < 1e-8 and abs(y_curr[1]) < 1e-8 and abs(y_curr[2]) < 1e-8:
+                if debug: print("НЕДОСЧЁТ")
+                break
 
             if event_condition(y_prev, y_curr, inner_sf):
                 if kneading_index >= kneadings_start:
                     kneadings_weighted_sum += kneading_evaluator(y_curr, kneading_index, kneadings_end)
+
+                    if debug:
+                        curr_bary = bary_expansion(y_curr)
+                        curr_domain = get_domain_num(curr_bary)
+                        print(curr_domain)
+
                 kneading_index += 1
                 extrs.append(y_curr.copy())
                 ns.append(i)
-                print('ПОВЫСИЛИ ИНДЕКС')
+                if debug: print("ПОВЫСИЛИ ИНДЕКС")
 
             last_n = i
             if kneading_index > kneadings_end:
@@ -151,7 +164,7 @@ def make_integrator_rk4(event_condition, kneading_evaluator):
 
             y_prev = y_curr.copy()
 
-        print('КОНЕЦ')
+        if debug: print("КОНЕЦ")
         return kneadings_weighted_sum, trajectory[:last_n], ns, np.array(extrs), last_n
 
     return integrator_rk4

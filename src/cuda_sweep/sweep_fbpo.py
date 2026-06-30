@@ -1,6 +1,12 @@
+import os
+# needs to appear before `from numba import cuda`
+os.environ["NUMBA_ENABLE_CUDASIM"] = "0"
+# set to "1" for more debugging, but slower performance
+os.environ["NUMBA_CUDA_DEBUGINFO"] = "0"
+
+import math
 import numpy as np
 from numba import cuda
-from src.plotting.convert import convert_heavy_tail_to_sequence
 
 PARAM_TO_INDEX = {
     'w': 0,
@@ -33,26 +39,64 @@ def full_rhs(params, phis, dphis):
     for i in range(4):
         dphis[i] = w
         for j in range(4):
-            dphis[i] += 0.25 * (-np.sin(phis[i] - phis[j] + a) + r * np.sin(2 * (phis[i] - phis[j]) + b))
+            dphis[i] += 0.25 * (-math.sin(phis[i] - phis[j] + a) + r * math.sin(2 * (phis[i] - phis[j]) + b))
+
+
+# @cuda.jit(device=True)
+# def reduced_rhs(params, psis, dpsis):
+#     """Calculates the right-hand side of the reduced system"""
+#     phis = cuda.local.array(DIM, dtype=np.float64)
+#     dphis = cuda.local.array(DIM, dtype=np.float64)
+#     dpsis_temp = cuda.local.array(DIM, dtype=np.float64)
+#
+#     phis[0] = 0.
+#     for i in range(3):
+#         phis[i + 1] = psis[i]
+#
+#     full_rhs(params, phis, dphis)
+#
+#     for i in range(DIM):
+#         dpsis_temp[i] = dphis[i] - dphis[0]
+#     for i in range(DIM_REDUCED):
+#         dpsis[i] = dpsis_temp[i + 1]
 
 
 @cuda.jit(device=True)
 def reduced_rhs(params, psis, dpsis):
     """Calculates the right-hand side of the reduced system"""
-    phis = cuda.local.array(DIM, dtype=np.float64)
-    dphis = cuda.local.array(DIM, dtype=np.float64)
-    dpsis_temp = cuda.local.array(DIM, dtype=np.float64)
+    _, a, b, r = params
+    psi0 = psis[0]
+    psi1 = psis[1]
+    psi2 = psis[2]
 
-    phis[0] = 0.
-    for i in range(3):
-        phis[i + 1] = psis[i]
+    # для dphi0 (без j = 0)
+    term0_1 = -math.sin(a - psi0) + r * math.sin(b - 2.0 * psi0)
+    term0_2 = -math.sin(a - psi1) + r * math.sin(b - 2.0 * psi1)
+    term0_3 = -math.sin(a - psi2) + r * math.sin(b - 2.0 * psi2)
+    dphi0 = term0_1 + term0_2 + term0_3
 
-    full_rhs(params, phis, dphis)
+    # для dphi1 (без j = 1)
+    term1_0 = -math.sin(a + psi0) + r * math.sin(b + 2.0 * psi0)
+    term1_2 = -math.sin(a + psi0 - psi1) + r * math.sin(b + 2.0 * (psi0 - psi1))
+    term1_3 = -math.sin(a + psi0 - psi2) + r * math.sin(b + 2.0 * (psi0 - psi2))
+    dphi1 = term1_0 + term1_2 + term1_3
 
-    for i in range(DIM):
-        dpsis_temp[i] = dphis[i] - dphis[0]
-    for i in range(DIM_REDUCED):
-        dpsis[i] = dpsis_temp[i + 1]
+    # для dphi2 (без j = 2)
+    term2_0 = -math.sin(a + psi1) + r * math.sin(b + 2.0 * psi1)
+    term2_1 = -math.sin(a + psi1 - psi0) + r * math.sin(b + 2.0 * (psi1 - psi0))
+    term2_3 = -math.sin(a + psi1 - psi2) + r * math.sin(b + 2.0 * (psi1 - psi2))
+    dphi2 = term2_0 + term2_1 + term2_3
+
+    # для dphi3 (без j = 3)
+    term3_0 = -math.sin(a + psi2) + r * math.sin(b + 2.0 * psi2)
+    term3_1 = -math.sin(a + psi2 - psi0) + r * math.sin(b + 2.0 * (psi2 - psi0))
+    term3_2 = -math.sin(a + psi2 - psi1) + r * math.sin(b + 2.0 * (psi2 - psi1))
+    dphi3 = term3_0 + term3_1 + term3_2
+
+    # считаем разности фаз
+    dpsis[0] = 0.25 * (dphi1 - dphi0)
+    dpsis[1] = 0.25 * (dphi2 - dphi0)
+    dpsis[2] = 0.25 * (dphi3 - dphi0)
 
 
 @cuda.jit(device=True)

@@ -23,41 +23,55 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 87
-    right_n: 25
-    left_step: 1.2e-04
-    right_step: 1.2e-04
+    left_n: 350
+    right_n: 100
+    left_step: 0.00003
+    right_step: 0.00003
     name: a
     caption: \alpha
   second:
-    down_n: 87
-    up_n: 25
-    down_step: 1.2e-04
-    up_step: 1.2e-04
+    down_n: 350
+    up_n: 100
+    down_step: 0.00003
+    up_step: 0.00003
     name: b
     caption: \beta
+#  first:
+#    left_n: 87
+#    right_n: 25
+#    left_step: 1.2e-04
+#    right_step: 1.2e-04
+#    name: a
+#    caption: \alpha
+#  second:
+#    down_n: 87
+#    up_n: 25
+#    down_step: 1.2e-04
+#    up_step: 1.2e-04
+#    name: b
+#    caption: \beta
 # name of the task to perform
-task: route
+task: kneadings
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
 sf_grid:
   start_eq: [0.0, 2.309560584015542, 4.756520197312062]
   inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
-  input_data: './output/test_2026-04-06_21-45-40.hdf5'
+  input_data: #'./output/test_2026-04-06_21-45-40.hdf5'
 kneadings:
   dt: 0.01
   n: 150000
   stride: 1
   kneadings_start: 0
   kneadings_end: 2
-  input_data: './output/test_2026-04-06_21-45-40.hdf5'
+  input_data: #'./output/test_2026-04-06_21-45-40.hdf5'
 # route task
 # "mode": "attr" or "sepbif"
 # - "attr": analyzes attractors on the route
 # - "sepbif": analyzes separatrix bifurcations on the route
 route:
-  mode:
+  mode: attr
   start_pt: (-2.920, -1.615) #(-2.9195, -1.620)
   end_pt: (-2.911, -1.615) #(-2.910209192326542, -1.611684228842761)
   map_only: 0

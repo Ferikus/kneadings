@@ -3,22 +3,23 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'lib/computation_template'))
 
-import src.computing.workers_kneadings_fbpo as wrk
-import src.computing.engines_kneadings_fbpo as engine
+import src.computing.workers as wrk
+import src.computing.engines as engine
 
 from lib.computation_template.engine import workflow, getConfiguration, parseArguments
-from src.computing.engines_kneadings_fbpo import get_kneadings_data, get_config_data, check_config_correspondence
+from src.computing.engines import get_kneadings_data, get_config_data, check_config_correspondence
 from src.routing.route_tools_sepbif import map_out_sepbif_route_on_kneadings_set
 from src.routing.route_tools_attr import map_out_attr_route_on_kneadings_set
 
-ENGINE_REGISTRY = {'kneadings': engine.general_engine}
+ENGINE_REGISTRY = {'kneadings': engine.general_engine,
+                   'periodicity': engine.general_engine}
 
 if __name__ == "__main__":
     parseArguments(sys.argv)
     config = getConfiguration(sys.argv[1])
     task_name = config['task']
 
-    if task_name == 'kneadings':
+    if task_name != 'route':
         init_func = wrk.registry['init'][task_name]
         worker = wrk.registry['worker'][task_name]
         engine = ENGINE_REGISTRY[task_name]

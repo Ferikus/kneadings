@@ -1,17 +1,18 @@
 import os
 import datetime
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from ast import literal_eval
 
 from lib.computation_template.workers_utils import makeFinalOutname
 from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
 from src.system_analysis.thetrahedron import *
-from src.computing.engines_kneadings_fbpo import (save_kneadings_data, get_kneadings_data, get_kneadings_records_data,
-                                                  get_mode_map_data, get_inits_data)
+from src.computing.engines import (save_data, get_kneadings_data, get_kneadings_records_data,
+                                   get_mode_map_data, get_inits_data)
 
 
-def get_grid_points_along_line(data, pt1, pt2):
-    """Находит узлы сетки, через которые проходит линия, используя реальные координаты."""
+def get_grid_points_along_line(data, pt1, pt2, p):
+    """Gathers grid nodes intersected by the line which is defined by two points"""
     idxs_x, idxs_y, params_x, params_y, vals = data
 
     unique_params_x = np.unique(params_x)
@@ -23,8 +24,7 @@ def get_grid_points_along_line(data, pt1, pt2):
     grid_matrix = np.full((param_y_count, param_x_count), -0.3)
     grid_matrix[idxs_y, idxs_x] = vals
 
-    num_points = 100  # разбиение -> вынести в аргументы функции
-    t = np.linspace(0, 1, num_points)
+    t = np.linspace(0, 1, p)
     line_xs = pt1[0] + t * (pt2[0] - pt1[0])
     line_ys = pt1[1] + t * (pt2[1] - pt1[1])
 
@@ -51,7 +51,6 @@ def get_grid_points_along_line(data, pt1, pt2):
 
 def slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, save_dir):
     """Рисует карту режимов и выбранный маршрут"""
-
     grid_dict = config['grid']
     param_x_caption = grid_dict['first']['caption']
     param_y_caption = grid_dict['second']['caption']
@@ -62,9 +61,10 @@ def slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, save_dir):
     kneadings_len = kneadings_end - kneadings_start + 1
 
     img_ext = config['output']['imageExtension']
-
-    plot_settings = config['misc']['plot_settings']['default']
     accent_color = 'white'
+
+    plot_settings = config['misc']['plot_settings']['2d']
+    plt.rcParams.update(plot_settings)
 
     def set_color_map():
         return set_random_color_map(4, kneadings_len)
@@ -76,7 +76,7 @@ def slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, save_dir):
     # отрисовка точек на срезе
     for coords in rep_pts_coords:
         rep_pt_x, rep_pt_y = coords
-        plt.scatter(rep_pt_x, rep_pt_y, marker='o', color=accent_color, linewidths=3, edgecolor='black', zorder=3)
+        plt.scatter(rep_pt_x, rep_pt_y, marker='o', color=accent_color, s=100, linewidths=3, edgecolor='black', zorder=3)
 
     plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep "
               f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")
@@ -121,7 +121,7 @@ def map_out_route_on_kneadings_set(config, output_suffix, get_target_points_func
 
     # сбор репрезентативных точек
     print("Getting representative points...")
-    idxs, coords, vals = get_grid_points_along_line(kneadings_data, pt1, pt2)
+    idxs, coords, vals = get_grid_points_along_line(kneadings_data, pt1, pt2, 100)
     target_pts, rep_pts_coords = get_target_points_func(idxs, coords, vals)
 
     # отрисовка карты режимов
@@ -135,5 +135,5 @@ def map_out_route_on_kneadings_set(config, output_suffix, get_target_points_func
 
     # дублирование hdf5 файла в saving_directory с обновлённым значением задачи route в конфиге
     hdf5_outname = makeFinalOutname(config, {'targetDir': saving_dir}, "hdf5", start_time)
-    save_kneadings_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
+    save_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
     print("Dataset successfully saved")
