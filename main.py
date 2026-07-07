@@ -12,7 +12,8 @@ from src.routing.route_tools_sepbif import map_out_sepbif_route_on_kneadings_set
 from src.routing.route_tools_attr import map_out_attr_route_on_kneadings_set
 
 ENGINE_REGISTRY = {'kneadings': engine.general_engine,
-                   'periodicity': engine.general_engine}
+                   'periodicity': engine.general_engine,
+                   'symmetry_detectives': engine.general_engine}
 
 if __name__ == "__main__":
     parseArguments(sys.argv)
