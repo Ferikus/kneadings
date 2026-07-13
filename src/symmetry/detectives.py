@@ -2,8 +2,6 @@ import numpy as np
 from numba import cuda
 from src.cuda_sweep.sweep_fbpo import full_rhs
 import itertools
-from matplotlib import colors
-import matplotlib.pyplot as plt 
 
 DIM = 4
 DIM_REDUCED = 3
@@ -21,6 +19,14 @@ CODE_T0_SYMMETRY = 3.0
 
 N_ALL_PERMUTATIONS = 24
 N_CIR_PERMUTATIONS = 4
+
+DATA_TO_COLOR = {
+    NO_INIT_FOUND_ERROR: 'white',
+    STUCK_INTO_EQUILIBRIUM: 'darkgray',
+    CODE_T1_SYMMETRY: 'red',
+    CODE_T2_SYMMETRY: 'yellow',
+    CODE_T0_SYMMETRY: 'green'
+}
 
 @cuda.jit(device=True)
 def stepper_rk4_full(params, y_curr, dt):
@@ -313,13 +319,6 @@ def sweep_detective(
 
     return detectives_array
 
-DATA_TO_COLOR = {NO_INIT_FOUND_ERROR: 'white',
-                 STUCK_INTO_EQUILIBRIUM: 'darkgray',
-                 CODE_T1_SYMMETRY: 'red',
-                 CODE_T2_SYMMETRY: 'yellow',
-                 CODE_T0_SYMMETRY: 'green'
-                 }
-
 
 def makeRuleOne(logD01_threshold, logD02_threshold):
     def ruleOne(dists):
@@ -332,38 +331,6 @@ def makeRuleOne(logD01_threshold, logD02_threshold):
             return CODE_T0_SYMMETRY
         
     return ruleOne
-
-def plot_detectives_data(detectives_data, proximitiesRule):
-    idxs_x, idxs_y, params_x, params_y, detectives_outputs = detectives_data
-
-    unique_params_x = np.unique(params_x)
-    unique_params_y = np.unique(params_y)
-
-    param_x_count = len(unique_params_x)
-    param_y_count = len(unique_params_y)
-
-    detectives_arrays = np.reshape(detectives_outputs, (-1, 4))
-    # classify detectives_outputs 
-    symmTypes = [] 
-    for do in detectives_arrays:
-        err, *dists = do 
-        if err != 1.0:
-            symmTypes.append(err)
-        else: 
-            symmTypes.append(proximitiesRule(dists))
-
-    symmTypeColored = [colors.to_rgb(DATA_TO_COLOR[st]) for st in symmTypes]
-
-    symmColors = np.array(symmTypeColored)
-    symmGrid = np.reshape(symmColors, (param_y_count, param_x_count, 3))
-
-    fig = plt.figure()
-
-    plt.pcolormesh(unique_params_x, unique_params_y, symmGrid)
-
-    return fig
-
-    # fig.savefig('symm_tst.png')
 
 
 

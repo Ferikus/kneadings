@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.colors import ListedColormap
 import io
 
 from src.computing.engines import (get_kneadings_data, get_config_data, check_config_correspondence,
                                    save_data)
 from src.cuda_sweep.sweep_period import sweep_period_complexity
 from src.routing.route_exploring import get_grid_points_along_line
+from src.plotting.plot_mode_map import plot_periodicity_data
 
 ### to connect with workers file
 from lib.computation_template.workers_utils import register, makeFinalOutname
@@ -89,17 +89,17 @@ def post_periodicity_fbpo(config, initResult, workerResult, grid, startTime):
     up_n = grid_dict['second']['up_n']
     down_n = grid_dict['second']['down_n']
 
-    inits = initResult['inits']
-    nones = initResult['nones']
-    params_x = initResult['params_x']
-    params_y = initResult['params_y']
-    inner_sf_set = initResult['inner_sf_set']
-
     periodicity_dict = config['periodicity']
     kneadings_start = periodicity_dict['kneadings_start']
     kneadings_end = periodicity_dict['kneadings_end']
 
     plot_settings = config['misc']['plot_settings']['default']
+
+    inits = initResult['inits']
+    nones = initResult['nones']
+    params_x = initResult['params_x']
+    params_y = initResult['params_y']
+    inner_sf_set = initResult['inner_sf_set']
 
     period_set = workerResult['period_set']
 
@@ -112,52 +112,11 @@ def post_periodicity_fbpo(config, initResult, workerResult, grid, startTime):
 
     periods_data = [idxs_x, idxs_y, params_x, params_y, period_set]
 
-    plot_data = np.ma.masked_where(period_set < 0, period_set)
-    custom_cmap = plt.get_cmap('gist_rainbow').copy()
-    custom_cmap.set_under('black')
-    custom_cmap.set_bad('gray')
-
-    unique_params_x = np.unique(params_x)
-    unique_params_y = np.unique(params_y)
-    param_x_count = len(unique_params_x)
-    param_y_count = len(unique_params_y)
-
-    mpl.rcParams.update(plot_settings)
-    fig = plt.figure()
-    plt.pcolormesh(unique_params_x, unique_params_y,
-                   plot_data.reshape((param_y_count, param_x_count)),
-                   cmap=custom_cmap,
-                   shading='nearest',
-                   vmin=1.0, vmax=4.0,  #np.max(valid_periods) if valid_periods.size > 0 else 2.0
-                   rasterized=True)
-    plt.xlim(unique_params_x.min(), unique_params_x.max())
-    plt.ylim(unique_params_y.min(), unique_params_y.max())
-    plt.axis('scaled')
-    plt.xlabel(f'${param_x_caption}$')
-    plt.ylabel(f'${param_y_caption}$')
-    plt.tick_params(axis='x')
-    plt.tick_params(axis='y')
-    plt.locator_params(axis='x', nbins=5)
-    plt.locator_params(axis='y', nbins=5)
+    fig = plot_periodicity_data(
+        periods_data, param_x_caption, param_y_caption, plot_settings
+    )
     plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter period complexity map\n"
               f"for [{kneadings_start + 1}-{kneadings_end + 1}] kneadings length")
-
-    # 1. Создаем нормализацию для сопоставления значений 1..4 с цветами палитры
-    legend_vals = np.unique([val for val in period_set if val > 0]).astype(int)
-    norm = mpl.colors.Normalize(vmin=1.0, vmax=4.0)
-    # 2. Формируем список плашек для каждого периода
-    legend_patches = [
-        mpatches.Patch(color='black', label='Irregular'),
-        mpatches.Patch(color='gray', label='Error'),
-        *[mpatches.Patch(color=custom_cmap(norm(p)), label=f'{p}') for p in legend_vals]
-    ]
-    plt.legend(
-        handles=legend_patches,
-        title="Period complexity",
-        loc='upper left',
-        bbox_to_anchor=(1.05, 1),
-        borderaxespad=0.
-    )
 
     def onclick(event):
         xdata = event.xdata

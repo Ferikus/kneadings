@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib import colors
+import matplotlib.patches as mpatches
+from src.symmetry.detectives import DATA_TO_COLOR
 
 
 def set_random_color_map(system_dim, kneadings_len):
@@ -12,7 +14,7 @@ def set_random_color_map(system_dim, kneadings_len):
     # red = 1 - blue
     # green = np.random.random(color_map_levels) * 0.8 + 0.1
     # RGB = np.column_stack((red, green, blue))
-    # custom_cmap = ListedColormap(RGB)
+    # custom_cmap = colors.ListedColormap(RGB)
     # return custom_cmap
 
     # второй способ R-R-B-B
@@ -52,7 +54,7 @@ def set_random_color_map(system_dim, kneadings_len):
     green = np.random.random(color_map_levels) * 0.6 + 0.2
 
     RGB = np.column_stack((red, green, blue))
-    custom_cmap = ListedColormap(RGB)
+    custom_cmap = colors.ListedColormap(RGB)
 
     return custom_cmap
 
@@ -78,22 +80,44 @@ def set_mode_map_size(param_x_count, param_y_count):
     return size_x, size_y
 
 
-def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings):
-    """Строит карту режимов на основе таблицы данных нидингов"""
+def prepare_mode_map(params_x, params_y, param_x_caption, param_y_caption, plot_settings):
+    """Настройка сетки параметров и оформления осей."""
     mpl.rcParams.update(plot_settings)
-
-    idxs_x, idxs_y, params_x, params_y, kneadings = kneadings_data
 
     unique_params_x = np.unique(params_x)
     unique_params_y = np.unique(params_y)
-
     param_x_count = len(unique_params_x)
     param_y_count = len(unique_params_y)
 
-    grid_matrix = np.full((param_y_count, param_x_count), -0.3)  # строки x столбцы
-    grid_matrix[idxs_y, idxs_x] = kneadings
+    # fig_size = set_mode_map_size(param_x_count, param_y_count)
+    # fig = plt.figure(figsize=fig_size)
+    fig = plt.figure()
 
-    fig = plt.figure(figsize=set_mode_map_size(param_x_count, param_y_count))
+    plt.xlabel(f'${param_x_caption}$')
+    plt.ylabel(f'${param_y_caption}$')
+    # plt.xlim(unique_params_x.min(), unique_params_x.max())
+    # plt.ylim(unique_params_y.min(), unique_params_y.max())
+
+    plt.tick_params(axis='x')
+    plt.tick_params(axis='y')
+    plt.locator_params(axis='x', nbins=5)
+    plt.locator_params(axis='y', nbins=5)
+
+    plt.gca().set_aspect('equal')
+
+    return fig, unique_params_x, unique_params_y, param_x_count, param_y_count
+
+
+def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings):
+    """Строит карту режимов на основе таблицы данных нидингов"""
+    idxs_x, idxs_y, params_x, params_y, kneadings = kneadings_data
+
+    fig, unique_params_x, unique_params_y, param_x_count, param_y_count = prepare_mode_map(
+        params_x, params_y, param_x_caption, param_y_caption, plot_settings
+    )
+
+    grid_matrix = np.full((param_y_count, param_x_count), -0.3)
+    grid_matrix[idxs_y, idxs_x] = kneadings
 
     special_mask = grid_matrix < 0
     normal_mask = grid_matrix >= 0
@@ -122,11 +146,89 @@ def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_captio
                        vmin=0, vmax=1,
                        rasterized=True)
 
-    plt.xlabel(f'${param_x_caption}$')
-    plt.ylabel(f'${param_y_caption}$')
-    plt.tick_params(axis='x',)
-    plt.tick_params(axis='y')
-    plt.locator_params(axis='x', nbins=5)
-    plt.locator_params(axis='y', nbins=5)
+    return fig
+
+
+def plot_periodicity_data(periods_data, param_x_caption, param_y_caption, plot_settings):
+    idxs_x, idxs_y, params_x, params_y, period_set = periods_data
+
+    fig, unique_x, unique_y, nx, ny = prepare_mode_map(
+        params_x, params_y, param_x_caption, param_y_caption, plot_settings
+    )
+
+    grid_matrix = np.full((ny, nx), -1.0)
+    grid_matrix[idxs_y, idxs_x] = period_set
+    plot_data = np.ma.masked_where(grid_matrix < 0, grid_matrix)
+
+    custom_cmap = plt.get_cmap('gist_rainbow').copy()
+    custom_cmap.set_under('black')
+    custom_cmap.set_bad('gray')
+
+    plt.pcolormesh(unique_x, unique_y,
+                   plot_data,
+                   cmap=custom_cmap,
+                   shading='nearest',
+                   vmin=1.0, vmax=4.0,
+                   rasterized=True)
+
+    # legend
+    legend_vals = np.unique([val for val in period_set if val > 0]).astype(int)
+    norm = colors.Normalize(vmin=1.0, vmax=4.0)
+
+    legend_patches = [
+        mpatches.Patch(color='black', label='Irregular'),
+        mpatches.Patch(color='gray', label='Error'),
+        *[mpatches.Patch(color=custom_cmap(norm(p)), label=f'{p}') for p in legend_vals]
+    ]
+    plt.legend(
+        handles=legend_patches,
+        title="Period complexity",
+        loc='upper left',
+        bbox_to_anchor=(1.05, 1),
+        borderaxespad=0.
+    )
+
+    return fig
+
+
+def plot_detectives_data(detectives_data, proximitiesRule, param_x_caption, param_y_caption, plot_settings):
+    idxs_x, idxs_y, params_x, params_y, detectives_outputs = detectives_data
+
+    fig, unique_params_x, unique_params_y, param_x_count, param_y_count = prepare_mode_map(
+        params_x, params_y, param_x_caption, param_y_caption, plot_settings
+    )
+
+    detectives_arrays = np.reshape(detectives_outputs, (-1, 4))
+    # classify detectives_outputs
+    symmTypes = []
+    for do in detectives_arrays:
+        err, *dists = do
+        if err != 1.0:
+            symmTypes.append(err)
+        else:
+            symmTypes.append(proximitiesRule(dists))
+
+    symmTypeColored = [colors.to_rgb(DATA_TO_COLOR[st]) for st in symmTypes]
+
+    symmColors = np.array(symmTypeColored)
+    symmGrid = np.reshape(symmColors, (param_y_count, param_x_count, 3))
+
+    plt.pcolormesh(unique_params_x, unique_params_y, symmGrid)
+
+    # legend
+    legend_patches = [
+        # mpatches.Patch(color='white', label='No init error'),
+        # mpatches.Patch(color='darkgray', label='Equilibrium error'),
+        mpatches.Patch(color='red', label='T1'),
+        mpatches.Patch(color='yellow', label='T2'),
+        mpatches.Patch(color='green', label='T0'),
+    ]
+    plt.legend(
+        handles=legend_patches,
+        title="Symmetry types",
+        loc='upper left',
+        bbox_to_anchor=(1.05, 1),
+        borderaxespad=0.
+    )
 
     return fig

@@ -17,8 +17,6 @@ from src.cuda_sweep.sweep_fbpo import sweep
 from src.system_analysis.convert import convert_heavy_tail_to_sequence
 from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
 from src.routing.route_exploring import get_grid_points_along_line
-from src.symmetry.detectives import sweep_detective, plot_detectives_data, makeRuleOne
-import json
 
 ### to connect with workers file
 from lib.computation_template.workers_utils import register, makeFinalOutname
@@ -180,13 +178,13 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     kneadings_end = kneadings_dict['kneadings_end']
     kneadings_len = kneadings_end - kneadings_start + 1
 
+    plot_settings = config['misc']['plot_settings']['default']
+
     inits = initResult['inits']
     nones = initResult['nones']
     params_x = initResult['params_x']
     params_y = initResult['params_y']
     inner_sf_set = initResult['inner_sf_set']
-
-    plot_settings = config['misc']['plot_settings']['default']
 
     kneadings_weighted_sum_set = workerResult['kneadings_weighted_sum_set']
 
@@ -255,6 +253,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     img_extension = config['output']['imageExtension']
     plot_outname = makeFinalOutname(config, initResult, img_extension, startTime)
     fig.savefig(plot_outname, bbox_inches='tight')
+    plt.close(fig)
     print("Mode map successfully saved")
 
     # пример восстановления картинки из hdf файла
@@ -268,139 +267,3 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     hdf5_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
     save_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
     print("Dataset successfully saved")
-
-
-@register(registry, 'worker', 'symmetry_detectives')
-def worker_symmetry_detectives(config, initResult, timeStamp):
-    def_sys_dict = config['defaultSystem']
-    w = def_sys_dict['w']
-    a = def_sys_dict['a']
-    b = def_sys_dict['b']
-    r = def_sys_dict['r']
-    param_to_index = def_sys_dict['param_to_index']
-
-    grid_dict = config['grid']
-    left_n = grid_dict['first']['left_n']
-    right_n = grid_dict['first']['right_n']
-    up_n = grid_dict['second']['up_n']
-    down_n = grid_dict['second']['down_n']
-    param_x_name = grid_dict['first']['name']
-    param_y_name = grid_dict['second']['name']
-
-    detectives_params = config['symmetry_detectives']
-    dt = float(detectives_params['dt'])
-    nStepsSkip = int(detectives_params['nStepsSkip'])
-    nStepsAttractor = int(detectives_params['nStepsAttractor'])
-
-    inits = initResult['inits']
-    nones = initResult['nones']
-    params_x = initResult['params_x']
-    params_y = initResult['params_y']
-
-    def_params = [w, a, b, r]
-
-    detectives_outputs = sweep_detective(
-        inits,
-        nones,
-        params_x,
-        params_y,
-        def_params,
-        param_to_index,
-        param_x_name,
-        param_y_name,
-        up_n,
-        down_n,
-        left_n,
-        right_n,
-        dt,
-        nStepsSkip,
-        nStepsAttractor
-    )
-
-    # fileContent = ['# idx param_x_name params_x[idx] param_y_name params_y[idx] errCode log10_D01 log10_D02 log10_D03\n']
-    fileContent = ['# idx params_x[idx] params_y[idx] errCode log10_D01 log10_D02 log10_D03\n']
-
-    for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
-        curEntry = detectives_outputs[idx*4 + 0], detectives_outputs[idx*4 + 1], \
-                   detectives_outputs[idx*4 + 2], detectives_outputs[idx*4 + 3]
-
-        #fileContent.append(f"{idx} {param_x_name} {params_x[idx]} {param_y_name} {params_y[idx]} {curEntry[0]} {np.log10(curEntry[1])} {np.log10(curEntry[2])}  {np.log10(curEntry[3])}\n")
-        fileContent.append(f"{idx} {params_x[idx]} {params_y[idx]} {curEntry[0]} {np.log10(curEntry[1])} {np.log10(curEntry[2])}  {np.log10(curEntry[3])}\n")
-
-    with open(f'out-garbage-{timeStamp}.txt', 'w') as f:
-        f.writelines(fileContent)
-
-    # jsonData = {'idxs_x': [1],
-    #             'idxs_y': [1],
-    #             'params_x': list(params_x),
-    #             'params_y': list(params_y),
-    #             'detectives_outputs': list(detectives_outputs)}
-
-    # with open(f'for-plot-{timeStamp}.json', 'w') as f:
-    #     json.dump(jsonData, f)
-
-    return {'detectives_outputs': detectives_outputs}
-
-
-@register(registry, 'post', 'symmetry_detectives')
-def post_symmetry_detectives(config, initResult, workerResult, grid, startTime):
-    grid_dict = config['grid']
-    param_x_caption = grid_dict['first']['caption']
-    left_n = grid_dict['first']['left_n']
-    right_n = grid_dict['first']['right_n']
-    param_y_caption = grid_dict['second']['caption']
-    up_n = grid_dict['second']['up_n']
-    down_n = grid_dict['second']['down_n']
-
-    # kneadings_dict = config['kneadings']
-    # kneadings_start = kneadings_dict['kneadings_start']
-    # kneadings_end = kneadings_dict['kneadings_end']
-    # kneadings_len = kneadings_end - kneadings_start + 1
-
-    params_x = initResult['params_x']
-    params_y = initResult['params_y']
-
-    plot_settings = config['misc']['plot_settings']['default']
-
-    detectives_outputs = workerResult['detectives_outputs']
-
-    idxs_x = []
-    idxs_y = []
-    for j in range(up_n + down_n + 1):
-        for i in range(left_n + right_n + 1):
-            idxs_x.append(i)
-            idxs_y.append(j)
-
-    detectives_data = [idxs_x,
-                      idxs_y,
-                      params_x,
-                      params_y,
-                      detectives_outputs]
-
-    fig = plot_detectives_data(detectives_data, makeRuleOne(-1.5, -0.5))
-    # plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep "
-            #   f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")
-
-    # with io.BytesIO() as buff:
-    #     fig.savefig(buff, format='raw')
-    #     buff.seek(0)
-    #     mode_map_data = np.frombuffer(buff.getvalue(), dtype=np.uint8)
-    # w, h = fig.canvas.get_width_height()
-    # mode_map_data = mode_map_data.reshape((int(h), int(w), -1))
-
-    # СОХРАНЕНИЕ
-
-    # hdf5_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
-    # save_kneadings_data(hdf5_outname, kneadings_data, mode_map_data, inits, nones, coeffs_set, config)
-    # print("Dataset successfully saved")
-
-    # txt_outname = makeFinalOutname(config, initResult, "txt", startTime)
-    # with open(txt_outname, 'w') as txt_output:
-    #     txt_output.write(kneadings_records)
-    # print("Text records successfully saved")
-
-    img_extension = config['output']['imageExtension']
-    plot_outname = makeFinalOutname(config, initResult, img_extension, startTime)
-    plt.savefig(plot_outname, bbox_inches='tight')
-    plt.close()
-    print("Mode map successfully saved")

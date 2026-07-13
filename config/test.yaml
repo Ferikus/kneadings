@@ -63,6 +63,7 @@ symmetry_detectives:
   dt: 0.01
   nStepsSkip: 000_00
   nStepsAttractor: 10_00
+  input_data:
 # route task
 # "mode": "attr" or "sepbif"
 # - "attr": analyzes attractors on the route
