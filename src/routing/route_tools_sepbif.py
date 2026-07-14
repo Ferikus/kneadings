@@ -93,11 +93,3 @@ def plot_target_attractors_sepbif(config, views, saving_directory, target_pts, c
             point_name=f"sepbif_{i}_from_{end_pt_val_converted}_to_{start_pt_val_converted}",
             img_ext=img_ext
         )
-
-
-def map_out_sepbif_route_on_kneadings_set(config):
-    """Строит бифуркации сепаратрис на фазовом портрете вдоль линии среза на карте нидингов"""
-    map_out_route_on_kneadings_set(config=config, output_suffix="sepbif_analysis",
-                                   get_target_points_func=get_target_points_sepbif,
-                                   plot_target_attractors_func=plot_target_attractors_sepbif,
-                                   convert_func=convert_heavy_tail_to_sequence)

@@ -39,11 +39,14 @@ def plot_target_attractors_attr(config, views, saving_directory, plotting_data, 
     kneadings_dict = config['kneadings']
     kneadings_start = kneadings_dict['kneadings_start']
     kneadings_end = kneadings_dict['kneadings_end']
+    dt = kneadings_dict['dt']
+    n = kneadings_dict['n']
 
     route_dict = config['route']
-    dt = route_dict['dt']
-    n = route_dict['n']
-    skip = route_dict['skip']
+    # dt = route_dict['dt']
+    # n = route_dict['n']
+    # skip = route_dict['skip']
+    skip = 0
 
     img_ext = config['output']['imageExtension']
 
@@ -81,11 +84,3 @@ def plot_target_attractors_attr(config, views, saving_directory, plotting_data, 
             point_name=f"attr_{i}_{val_converted}_T{symm_type}",
             img_ext=img_ext
         )
-
-
-def map_out_attr_route_on_kneadings_set(config):
-    """Строит бифуркации сепаратрис на фазовом портрете вдоль линии среза на карте нидингов"""
-    map_out_route_on_kneadings_set(config=config, output_suffix="attr_analysis",
-                                   get_target_points_func=get_target_points_attr,
-                                   plot_target_attractors_func=plot_target_attractors_attr,
-                                   convert_func=convert_heavy_tail_to_sequence,)

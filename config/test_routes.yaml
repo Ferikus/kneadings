@@ -51,21 +51,21 @@ grid:
 #    name: b
 #    caption: \beta
 # name of the task to perform
-task: kneadings
+task: route
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
 sf_grid:
   start_eq: [0.0, 2.309560584015542, 4.756520197312062]
   inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
-  input_data: #'./output/test_2026-04-06_21-45-40.hdf5'
+  input_data: './output/test_2026-04-06_21-45-40.hdf5'
 kneadings:
   dt: 0.01
   n: 150000
   stride: 1
   kneadings_start: 0
   kneadings_end: 2
-  input_data: #'./output/test_2026-04-06_21-45-40.hdf5'
+  input_data: './output/test_2026-04-06_21-45-40.hdf5'
 # route task
 # "mode": "attr" or "sepbif"
 # - "attr": analyzes attractors on the route
@@ -93,16 +93,30 @@ output:
 misc:
   plot_settings:
     default:
+      lines.linewidth: 1
+      lines.color: black
+      lines.markersize: 100
+#      font.size: 26          # the default font size for text, given in points.
+      xtick.labelsize: 16    # font size of the x tick labels
+      ytick.labelsize: 16    # font size of the y tick labels
+      axes.titlesize: 16     # font size of the axes title
+      axes.labelsize: 16     # font size of the x and y labels
+#      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
+#      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
+      figure.dpi: 100
+      savefig.dpi: 300
+    2d:
       lines.linewidth: 6
       lines.color: black
       lines.markersize: 16
-#      font.size: 26          # the default font size for text, given in points.
-      xtick.labelsize: 20    # font size of the x tick labels
-      ytick.labelsize: 20    # font size of the y tick labels
-      axes.titlesize: 26     # font size of the axes title
-      axes.labelsize: 26     # font size of the x and y labels
-#      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
-#      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
+
+      #      font.size: 26          # the default font size for text, given in points.
+      xtick.labelsize: 16    # font size of the x tick labels
+      ytick.labelsize: 16    # font size of the y tick labels
+      axes.titlesize: 16     # font size of the axes title
+      axes.labelsize: 16     # font size of the x and y labels
+      #      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
+      #      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
       figure.dpi: 72
       savefig.dpi: 300
   views:
