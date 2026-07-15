@@ -8,7 +8,7 @@ import multiprocessing
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 
-from src.computing.engines import (get_kneadings_data, get_inits_data, get_config_data,
+from src.computing.engines import (get_data, get_inits_data, get_config_data,
                                    check_config_correspondence, save_data)
 from src.system_analysis.find_equilibrium import correct_equilibrium_coords
 from src.system_analysis.get_inits import (continue_equilibrium, get_eq_type_grid, find_inits_for_equilibrium_grid,
@@ -56,7 +56,7 @@ def init_kneadings_fbpo(config, timeStamp):
     if input_data_path is not None:
         prev_config = get_config_data(input_data_path)
         check_config_correspondence(prev_config, config, ('sf_grid',))
-        kneadings_data = get_kneadings_data(input_data_path)
+        kneadings_data = get_data(input_data_path)
         inits, nones, inner_sf_set = get_inits_data(input_data_path)
         _, _, params_x, params_y, _ = kneadings_data
     else:
@@ -133,7 +133,7 @@ def worker_kneadings_fbpo(config, initResult, timeStamp):
     if input_data_path is not None:
         prev_config = get_config_data(input_data_path)
         check_config_correspondence(prev_config, config, ('sf_grid', 'kneadings',))
-        kneadings_data = get_kneadings_data(input_data_path)
+        kneadings_data = get_data(input_data_path)
         _, _, _, _, kneadings_weighted_sum_set = kneadings_data
     else:
         def_params = [w, a, b, r]

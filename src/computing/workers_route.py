@@ -1,8 +1,8 @@
 import os
 from ast import literal_eval
 
-from src.computing.engines import (save_data, get_kneadings_data, get_kneadings_records_data,
-                                   get_mode_map_data, get_inits_data)
+from src.computing.engines import (save_data, get_data, get_records_data,
+                                   get_mode_map_data, get_inits_data, get_config_data)
 from src.routing.route_exploring import get_grid_points_along_line, slice_mode_map
 from src.routing.route_tools_attr import get_target_points_attr, plot_target_attractors_attr
 from src.routing.route_tools_sepbif import get_target_points_sepbif, plot_target_attractors_sepbif
@@ -16,9 +16,10 @@ from src.computing.workers import registry
 @register(registry, 'init', 'route')
 def init_route(config, timeStamp):
     kneadings_input_data_path = config['kneadings']['input_data']
-    kneadings_data = get_kneadings_data(kneadings_input_data_path)
-    kneadings_records = get_kneadings_records_data(kneadings_input_data_path)
-    mode_map_data = get_mode_map_data(kneadings_input_data_path)
+    kneadings_config = get_config_data(kneadings_input_data_path)
+    kneadings_data = get_data(kneadings_input_data_path, kneadings_config)
+    kneadings_records = get_records_data(kneadings_input_data_path, kneadings_config)
+    mode_map_data = get_mode_map_data(kneadings_input_data_path, kneadings_config)
     inits, nones, inner_sf_set = get_inits_data(kneadings_input_data_path)
 
     pt1 = tuple(map(float, literal_eval(config['route']['start_pt'])))

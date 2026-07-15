@@ -1,7 +1,6 @@
 from itertools import groupby
 from functools import partial
 
-from src.system_analysis.convert import convert_heavy_tail_to_sequence
 from src.plotting.plot_attractors import plot_attractors_plt, plot_saddle_at_sepbif, get_face_sf_trajectories
 from src.routing.route_exploring import *
 

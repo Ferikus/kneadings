@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import io
 
-from src.computing.engines import (get_kneadings_data, get_config_data, check_config_correspondence,
+from src.computing.engines import (get_data, get_config_data, check_config_correspondence,
                                    save_data)
 from src.cuda_sweep.sweep_period import sweep_period_complexity
 from src.routing.route_exploring import get_grid_points_along_line
@@ -49,7 +49,7 @@ def worker_periodicity_fbpo(config, initResult, timeStamp):
     if input_data_path is not None:
         prev_config = get_config_data(input_data_path)
         check_config_correspondence(prev_config, config, ('sf_grid', 'periodicity',))
-        periods_data = get_kneadings_data(input_data_path)
+        periods_data = get_data(input_data_path)
         _, _, _, _, period_set = periods_data
     else:
         def_params = [w, a, b, r]

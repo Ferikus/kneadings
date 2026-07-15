@@ -8,30 +8,32 @@ import matplotlib.pyplot as plt
 from src.plotting.plot_mode_map import plot_mode_map, make_set_color_map
 
 
-def get_kneadings_data(input_data_dir):
-    """Gets kneading data from kneadings computing stage"""
+def get_data(input_data_dir, config):
+    """Gets task data from task computing stage"""
     assert input_data_dir is not None, "No input data path was given"
     assert os.path.isfile(input_data_dir), f"Data file {os.path.abspath(input_data_dir)} does not exist"
 
     input_data = h5py.File(input_data_dir, 'r')
-    kneadings_data = input_data['kneadings_info']['kneadings_data']
+    task_name = config['task']
+    data = input_data[f'{task_name}_info'][f'{task_name}_data']
 
-    idxs_x, idxs_y, params_x, params_y, kneadings = kneadings_data
+    idxs_x, idxs_y, params_x, params_y, vals = data
 
     idxs_x = idxs_x.astype(int)
     idxs_y = idxs_y.astype(int)
 
-    kneadings_data = [idxs_x, idxs_y, params_x, params_y, kneadings]
+    data = [idxs_x, idxs_y, params_x, params_y, vals]
 
-    return kneadings_data
+    return data
 
 
-def get_mode_map_data(input_data_dir):
+def get_mode_map_data(input_data_dir, config):
     assert input_data_dir is not None, "No input data path was given"
     assert os.path.isfile(input_data_dir), f"Data file {os.path.abspath(input_data_dir)} does not exist"
 
     input_data = h5py.File(input_data_dir, 'r')
-    mode_map_data = input_data['kneadings_info']['mode_map_data']
+    task_name = config['task']
+    mode_map_data = input_data[f'{task_name}_info']['mode_map_data']
 
     return mode_map_data
 
@@ -48,14 +50,15 @@ def get_inits_data(input_data_dir):
     return inits, nones, inner_sf_set
 
 
-def get_kneadings_records_data(input_data_dir):
+def get_records_data(input_data_dir, config):
     assert input_data_dir is not None, "No input data path was given"
     assert os.path.isfile(input_data_dir), f"Data file {os.path.abspath(input_data_dir)} does not exist"
 
     input_data = h5py.File(input_data_dir, 'r')
-    kneadings_records = input_data['kneadings_info']['kneadings_records'][()].decode('utf-8')
+    task_name = config['task']
+    records = input_data[f'{task_name}_info'][f'{task_name}_records'][()].decode('utf-8')
 
-    return kneadings_records
+    return records
 
 
 def get_config_data(input_data_dir):
@@ -110,7 +113,7 @@ def get_params_from_config(data_path):
 
 
 def plot_mode_map_by_config(data_path):
-    kneadings_data = get_kneadings_data(data_path)
+    kneadings_data = get_data(data_path)
     config = get_config_data(data_path)
     param_x_caption = config['grid']['first']['caption']
     param_y_caption = config['grid']['second']['caption']

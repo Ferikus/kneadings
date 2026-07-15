@@ -1,6 +1,5 @@
 from itertools import groupby
 
-from src.system_analysis.convert import convert_heavy_tail_to_sequence
 from src.plotting.plot_attractors import plot_attractors_plt, get_face_sf_trajectory, plot_thetrahedron
 from src.routing.route_exploring import *
 from src.symmetry.histogram import getSymmetryTypeByHistogram

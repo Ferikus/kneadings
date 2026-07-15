@@ -1,14 +1,7 @@
-import os
-import datetime
-import matplotlib as mpl
 import matplotlib.pyplot as plt
-from ast import literal_eval
 
-from lib.computation_template.workers_utils import makeFinalOutname
 from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
 from src.system_analysis.thetrahedron import *
-from src.computing.engines import (save_data, get_kneadings_data, get_kneadings_records_data,
-                                   get_mode_map_data, get_inits_data)
 
 
 def get_grid_points_along_line(data, pt1, pt2, p):
