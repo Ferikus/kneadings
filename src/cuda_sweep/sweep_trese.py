@@ -1,6 +1,6 @@
 import numpy as np
 from numba import cuda
-from src.plotting.convert import convert_heavy_tail_to_sequence
+from src.system_analysis.convert import convert_heavy_tail_to_sequence
 
 DIM = 3
 THREADS_PER_BLOCK = 512

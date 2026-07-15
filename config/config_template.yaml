@@ -23,21 +23,22 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 5
-    right_n: 5
-    left_step: 0.001
-    right_step: 0.001
-    name: a
-    caption: \alpha
+    left_n:
+    right_n:
+    left_step:
+    right_step:
+    name:
+    caption:
   second:
-    down_n: 5
-    up_n: 5
-    down_step: 0.001
-    up_step: 0.001
-    name: b
-    caption: \beta
+    down_n:
+    up_n:
+    down_step:
+    up_step:
+    name:
+    caption:
 # name of the task to perform
-task: symmetry_detectives
+# kneaings / periodicity / route
+task:
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
@@ -47,23 +48,22 @@ sf_grid:
   input_data:
 kneadings:
   dt: 0.01
-  n: 50000
+  n:
   stride: 1
-  kneadings_start: 0
-  kneadings_end: 7
+  kneadings_start:
+  kneadings_end:
   input_data:
 periodicity:
   dt: 0.01
-  n: 50000
+  n:
   stride: 1
-  kneadings_start: 0
-  kneadings_end: 3
+  kneadings_start:
+  kneadings_end:
   input_data:
 symmetry_detectives:
   dt: 0.01
-  nStepsSkip: 000_00
-  nStepsAttractor: 10_00
-  input_data:
+  nStepsSkip:
+  nStepsAttractor:
 # route task
 # "mode": "attr" or "sepbif"
 # - "attr": analyzes attractors on the route
@@ -83,7 +83,7 @@ route:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/"
-  mask: test
+  mask:
   useTimestamp: file
   imageExtension: png
 # some functions might use additional keyword-arguments
@@ -95,10 +95,10 @@ misc:
       lines.color: black
       lines.markersize: 16
 #      font.size: 26          # the default font size for text, given in points.
-      xtick.labelsize: 16    # font size of the x tick labels
-      ytick.labelsize: 16    # font size of the y tick labels
-      axes.titlesize: 16     # font size of the axes title
-      axes.labelsize: 16     # font size of the x and y labels
+      xtick.labelsize: 14    # font size of the x tick labels
+      ytick.labelsize: 14    # font size of the y tick labels
+      axes.titlesize: 14     # font size of the axes title
+      axes.labelsize: 14     # font size of the x and y labels
 #      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
 #      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
       figure.dpi: 100

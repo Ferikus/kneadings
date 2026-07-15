@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 
@@ -47,6 +48,44 @@ def find_equilibrium_by_guess(rhs, jac, initial_guess, tol=1e-12):
     eq_obj = sf.getEquilibriumInfo(eq_coords, jac)
 
     return eq_obj
+
+
+def correct_equilibrium_coords(rhs, jac, initial_guess, tol=1e-12):
+    inner_sf = find_equilibrium_by_guess(rhs, jac, initial_guess, tol)
+    if inner_sf is not None:
+        return inner_sf.coordinates
+    else:
+        # raise ValueError("No equilibrium found")
+        print(f"Warning: Couldn't find equilibrium by given guess {initial_guess}. The guess itself will be used.")
+        return initial_guess
+
+
+def find_init_pts(sys):
+    """Возвращает начальные условия для седло-фокуса"""
+    bounds = [(-0.1, 2 * np.pi + 0.1)] * 2
+    borders = [(-1e-15, 2 * np.pi + 1e-15)] * 2
+
+    # первые две функции -- общая система, вторые две -- в которой ищем с.р., дальше функция приведения
+    equilibria = sf.findEquilibria(lambda psis: sys.getReducedSystem(psis),
+                                   lambda psis: sys.getReducedSystemJac(psis),
+                                   lambda psis: sys.getRestriction(psis),
+                                   lambda psis: sys.getRestrictionJac(psis),
+                                   lambda phi: np.concatenate([[0.], phi]), bounds, borders,
+                                   sf.ShgoEqFinder(1000, 1, 1e-10),
+                                   sf.STD_PRECISION)
+
+    for eq in equilibria:  # перебираем все с.р., которые были найдены
+        if sf.has1DUnstable(eq, sf.STD_PRECISION):
+            start_eq = np.array(eq.coordinates)
+            if sf.is3DSaddleWith1dU(eq, sf.STD_PRECISION):
+                print(f"Found saddle {start_eq}")
+            elif sf.is3DSaddleFocusWith1dU(eq, sf.STD_PRECISION):
+                print(f"Found saddle-focus {start_eq}")
+            if sf.getInitPointsOnUnstable1DSeparatrix(eq, sf.pickCirSeparatrix, sf.STD_PRECISION):
+                init_pt = sf.getInitPointsOnUnstable1DSeparatrix(eq, sf.pickCirSeparatrix, sf.STD_PRECISION)[0]
+                print(f"with starting point {init_pt}")
+                print(f"Eigenvalues: {eq.eigenvalues}")
+                return init_pt
 
 
 if __name__ == "__main__":

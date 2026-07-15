@@ -1,0 +1,269 @@
+import numpy as np
+import time
+import datetime
+import matplotlib.pyplot as plt
+import io
+import multiprocessing
+
+import lib.eq_finder.systems_fun as sf
+import lib.eq_finder.SystOsscills as so
+
+from src.computing.engines import (get_data, get_inits_data, get_config_data,
+                                   check_config_correspondence, save_data)
+from src.system_analysis.find_equilibrium import correct_equilibrium_coords
+from src.system_analysis.get_inits import (continue_equilibrium, get_eq_type_grid, find_inits_for_equilibrium_grid,
+                                           generate_parameters, prepare_inner_sf_set)
+from src.cuda_sweep.sweep_fbpo import sweep
+from src.system_analysis.convert import convert_heavy_tail_to_sequence
+from src.plotting.plot_mode_map import plot_mode_map, set_random_color_map
+from src.routing.route_exploring import get_grid_points_along_line
+
+### to connect with workers file
+from lib.computation_template.workers_utils import register, makeFinalOutname
+from src.computing.workers import registry
+
+
+@register(registry, 'init', 'kneadings', 'periodicity', 'symmetry_detectives')
+def init_kneadings_fbpo(config, timeStamp):
+    def_sys_dict = config['defaultSystem']
+    w = def_sys_dict['w']
+    a = def_sys_dict['a']
+    b = def_sys_dict['b']
+    r = def_sys_dict['r']
+    param_to_index = def_sys_dict['param_to_index']
+
+    sf_grid_dict = config['sf_grid']
+    start_eq = sf_grid_dict['start_eq']
+    inner_sf_guess = sf_grid_dict['inner_sf']
+    input_data_path = sf_grid_dict['input_data']
+
+    grid_dict = config['grid']
+    up_n = int(grid_dict['second']['up_n'])
+    up_step = float(grid_dict['second']['up_step'])
+    down_n = int(grid_dict['second']['down_n'])
+    down_step = float(grid_dict['second']['down_step'])
+    left_n = int(grid_dict['first']['left_n'])
+    left_step = float(grid_dict['first']['left_step'])
+    right_n = int(grid_dict['first']['right_n'])
+    right_step = float(grid_dict['first']['right_step'])
+    param_x_name = grid_dict['first']['name']
+    param_y_name = grid_dict['second']['name']
+
+    def_params = [w, a, b, r]
+    param_x = float(def_params[param_to_index[param_x_name]])
+    param_y = float(def_params[param_to_index[param_y_name]])
+
+    if input_data_path is not None:
+        prev_config = get_config_data(input_data_path)
+        check_config_correspondence(prev_config, config, ('sf_grid',))
+        kneadings_data = get_data(input_data_path)
+        inits, nones, inner_sf_set = get_inits_data(input_data_path)
+        _, _, params_x, params_y, _ = kneadings_data
+    else:
+        start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
+        reduced_rhs = start_sys.getReducedSystem
+        reduced_jac = start_sys.getReducedSystemJac
+        get_params = start_sys.getParams
+        set_params = start_sys.setParams
+
+        if start_eq is not None:
+            start = time.time()
+
+            start_eq = correct_equilibrium_coords(reduced_rhs, reduced_jac, start_eq)
+            inner_sf = correct_equilibrium_coords(reduced_rhs, reduced_jac, inner_sf_guess)
+
+            with multiprocessing.Pool(processes=2) as pool:
+                args_start_eq = (reduced_rhs, reduced_jac, get_params, set_params,
+                                 param_to_index, param_x_name, param_y_name,
+                                 start_eq, up_n, down_n, left_n, right_n,
+                                 up_step, down_step, left_step, right_step)
+                args_inner_sf = (reduced_rhs, reduced_jac, get_params, set_params,
+                                 param_to_index, param_x_name, param_y_name,
+                                 inner_sf, up_n, down_n, left_n, right_n,
+                                 up_step, down_step, left_step, right_step)
+                start_eq_grid, inner_sf_grid = pool.starmap(continue_equilibrium, [args_start_eq, args_inner_sf])
+
+            start_sf_grid = get_eq_type_grid(start_eq_grid, up_n, down_n, left_n, right_n, sf.has1DUnstable, sf.STD_PRECISION)
+            inits, nones = find_inits_for_equilibrium_grid(start_sf_grid, 3, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
+            params_x, params_y = generate_parameters(param_x, param_y, up_n, down_n, left_n, right_n,
+                                                     up_step, down_step, left_step, right_step)
+
+            inner_sf_set = prepare_inner_sf_set(inner_sf_grid, 3, up_n, down_n, left_n, right_n)
+
+            end = time.time()
+            print(f"Took {end - start}s ({datetime.timedelta(seconds=end - start)})")
+        else:
+            raise ValueError("No start equilibrium given")
+
+    return {'inits': inits, 'nones': nones, 'params_x': params_x, 'params_y': params_y, 'inner_sf_set': inner_sf_set,
+            'targetDir': 'output'}
+
+
+@register(registry, 'worker', 'kneadings')
+def worker_kneadings_fbpo(config, initResult, timeStamp):
+    def_sys_dict = config['defaultSystem']
+    w = def_sys_dict['w']
+    a = def_sys_dict['a']
+    b = def_sys_dict['b']
+    r = def_sys_dict['r']
+    param_to_index = def_sys_dict['param_to_index']
+
+    grid_dict = config['grid']
+    left_n = grid_dict['first']['left_n']
+    right_n = grid_dict['first']['right_n']
+    up_n = grid_dict['second']['up_n']
+    down_n = grid_dict['second']['down_n']
+    param_x_name = grid_dict['first']['name']
+    param_y_name = grid_dict['second']['name']
+
+    kneadings_dict = config['kneadings']
+    dt = kneadings_dict['dt']
+    n = kneadings_dict['n']
+    stride = kneadings_dict['stride']
+    kneadings_start = kneadings_dict['kneadings_start']
+    kneadings_end = kneadings_dict['kneadings_end']
+    input_data_path = kneadings_dict['input_data']
+
+    inits = initResult['inits']
+    nones = initResult['nones']
+    params_x = initResult['params_x']
+    params_y = initResult['params_y']
+    inner_sf_set = initResult['inner_sf_set']
+
+    if input_data_path is not None:
+        prev_config = get_config_data(input_data_path)
+        check_config_correspondence(prev_config, config, ('sf_grid', 'kneadings',))
+        kneadings_data = get_data(input_data_path)
+        _, _, _, _, kneadings_weighted_sum_set = kneadings_data
+    else:
+        def_params = [w, a, b, r]
+        kneadings_weighted_sum_set = sweep(
+            inits,
+            nones,
+            params_x,
+            params_y,
+            def_params,
+            param_to_index,
+            param_x_name,
+            param_y_name,
+            up_n,
+            down_n,
+            left_n,
+            right_n,
+            dt,
+            n,
+            stride,
+            kneadings_start,
+            kneadings_end,
+            inner_sf_set
+        )
+
+    return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set}
+
+
+@register(registry, 'post', 'kneadings')
+def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
+    grid_dict = config['grid']
+    param_x_caption = grid_dict['first']['caption']
+    param_x_name = grid_dict['first']['name']
+    left_n = grid_dict['first']['left_n']
+    right_n = grid_dict['first']['right_n']
+    param_y_caption = grid_dict['second']['caption']
+    param_y_name = grid_dict['second']['name']
+    up_n = grid_dict['second']['up_n']
+    down_n = grid_dict['second']['down_n']
+
+    kneadings_dict = config['kneadings']
+    kneadings_start = kneadings_dict['kneadings_start']
+    kneadings_end = kneadings_dict['kneadings_end']
+    kneadings_len = kneadings_end - kneadings_start + 1
+
+    plot_settings = config['misc']['plot_settings']['default']
+
+    inits = initResult['inits']
+    nones = initResult['nones']
+    params_x = initResult['params_x']
+    params_y = initResult['params_y']
+    inner_sf_set = initResult['inner_sf_set']
+
+    kneadings_weighted_sum_set = workerResult['kneadings_weighted_sum_set']
+
+    idxs_x = []
+    idxs_y = []
+    for j in range(up_n + down_n + 1):
+        for i in range(left_n + right_n + 1):
+            idxs_x.append(i)
+            idxs_y.append(j)
+
+    kneadings_data = [idxs_x,
+                      idxs_y,
+                      params_x,
+                      params_y,
+                      kneadings_weighted_sum_set]
+
+    def set_color_map():
+        return set_random_color_map(4, kneadings_len)
+    # if kneadings_len < 20:
+    #     return set_random_color_map(4, kneadings_len)
+    # else:
+    #     return get_continuous_cmap()
+    fig = plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings)
+    plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep "
+              f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")
+
+    def onclick(event):
+        xdata = event.xdata
+        ydata = event.ydata
+
+        pts_idxs, pts_coords, pts_vals = get_grid_points_along_line(kneadings_data, (xdata, ydata), (xdata, ydata), 1)
+        pt_idx, pt_coords, pt_kneading_weighted = pts_idxs[0], pts_coords[0], pts_vals[0]
+        pt_kneading_symbolic = convert_heavy_tail_to_sequence(pt_kneading_weighted, 4, kneadings_len)
+
+        print(f"Clicked at node {pt_idx} with parameters {param_x_name}={pt_coords[0]:.15f}, {param_y_name}={pt_coords[1]:.15f}, "
+              f"kneading {pt_kneading_symbolic}")
+
+    fig.canvas.mpl_connect('button_press_event', onclick)
+    plt.show()
+
+    with io.BytesIO() as buff:
+        fig.savefig(buff, format='raw')
+        buff.seek(0)
+        mode_map_data = np.frombuffer(buff.getvalue(), dtype=np.uint8)
+    save_dpi = plot_settings['savefig.dpi']
+    w_inch, h_inch = fig.get_size_inches()
+    w = int(w_inch * save_dpi)
+    h = int(h_inch * save_dpi)
+    mode_map_data = mode_map_data.reshape((h, w, -1))
+
+    # SAVING
+
+    kneadings_records = ""
+    for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
+        kneading_weighted_sum = kneadings_weighted_sum_set[idx]
+        kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 4, kneadings_len)
+        kneadings_records = (kneadings_records + f"{param_x_name}: {params_x[idx]:.15f}, "
+                                                 f"{param_y_name}: {params_y[idx]:.15f} => "
+                                                 f"{kneading_symbolic} (Raw: {kneading_weighted_sum})\n")
+
+    txt_outname = makeFinalOutname(config, initResult, "txt", startTime)
+    with open(txt_outname, 'w') as txt_output:
+        txt_output.write(kneadings_records)
+    print("Text records successfully saved")
+
+    img_extension = config['output']['imageExtension']
+    plot_outname = makeFinalOutname(config, initResult, img_extension, startTime)
+    fig.savefig(plot_outname, bbox_inches='tight')
+    plt.close(fig)
+    print("Mode map successfully saved")
+
+    # пример восстановления картинки из hdf файла
+    # plot_outname_jpg = makeFinalOutname(config, initResult, 'jpg', startTime)
+    # with h5py.File(h5py_outname, 'r') as h5py_input:
+    #     plt.imshow(h5py_input['mode_map'], interpolation='nearest')
+    #     plt.axis('off')
+    #     plt.tight_layout()
+    #     plt.savefig(plot_outname_jpg, dpi=600, bbox_inches='tight')
+
+    hdf5_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
+    save_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
+    print("Dataset successfully saved")

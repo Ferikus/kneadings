@@ -23,39 +23,58 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 87
-    right_n: 25
-    left_step: 1.2e-04
-    right_step: 1.2e-04
+    left_n: 350
+    right_n: 100
+    left_step: 0.00003
+    right_step: 0.00003
     name: a
     caption: \alpha
   second:
-    down_n: 87
-    up_n: 25
-    down_step: 1.2e-04
-    up_step: 1.2e-04
+    down_n: 350
+    up_n: 100
+    down_step: 0.00003
+    up_step: 0.00003
     name: b
     caption: \beta
+#  first:
+#    left_n: 87
+#    right_n: 25
+#    left_step: 1.2e-04
+#    right_step: 1.2e-04
+#    name: a
+#    caption: \alpha
+#  second:
+#    down_n: 87
+#    up_n: 25
+#    down_step: 1.2e-04
+#    up_step: 1.2e-04
+#    name: b
+#    caption: \beta
 # name of the task to perform
-task: kneadings
+task: route
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
 sf_grid:
   start_eq: [0.0, 2.309560584015542, 4.756520197312062]
   inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
-  input_data: './output/test_2026-03-09_17-53-33.hdf5'
+  input_data: './output/test_2026-04-06_21-45-40.hdf5'
 kneadings:
   dt: 0.01
   n: 150000
   stride: 1
   kneadings_start: 0
   kneadings_end: 2
-  input_data: './output/test_2026-03-09_17-53-33.hdf5'
+  input_data: './output/test_2026-04-06_21-45-40.hdf5'
+# route task
+# "mode": "attr" or "sepbif"
+# - "attr": analyzes attractors on the route
+# - "sepbif": analyzes separatrix bifurcations on the route
 route:
+  mode: attr
   start_pt: (-2.920, -1.615) #(-2.9195, -1.620)
   end_pt: (-2.911, -1.615) #(-2.910209192326542, -1.611684228842761)
-  only_map_flag: 0
+  map_only: 0
 # information for saving files
 # "directory": where save it
 # "mask": what is the prefix
@@ -74,26 +93,40 @@ output:
 misc:
   plot_settings:
     default:
-      lines.linewidth: 6
+      lines.linewidth: 1
       lines.color: black
-      lines.markersize: 16
+      lines.markersize: 100
 #      font.size: 26          # the default font size for text, given in points.
-      xtick.labelsize: 20    # font size of the x tick labels
-      ytick.labelsize: 20    # font size of the y tick labels
-      axes.titlesize: 26     # font size of the axes title
-      axes.labelsize: 26     # font size of the x and y labels
+      xtick.labelsize: 16    # font size of the x tick labels
+      ytick.labelsize: 16    # font size of the y tick labels
+      axes.titlesize: 16     # font size of the axes title
+      axes.labelsize: 16     # font size of the x and y labels
 #      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
 #      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
       figure.dpi: 100
+      savefig.dpi: 300
+    2d:
+      lines.linewidth: 6
+      lines.color: black
+      lines.markersize: 16
+
+      #      font.size: 26          # the default font size for text, given in points.
+      xtick.labelsize: 16    # font size of the x tick labels
+      ytick.labelsize: 16    # font size of the y tick labels
+      axes.titlesize: 16     # font size of the axes title
+      axes.labelsize: 16     # font size of the x and y labels
+      #      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
+      #      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
+      figure.dpi: 72
       savefig.dpi: 300
   views:
     view_1:
       elev: 60
       azim: 160
       roll: 0
-      xlim_left: 0
-      xlim_right: 3
-      ylim_left: 1.5
+      xlim_left: 0.45
+      xlim_right: 3.15
+      ylim_left: 1.8
       ylim_right: 4.5
       zlim_left: 0
       zlim_right: 6.14

@@ -1,112 +1,17 @@
 import numpy as np
-from src.plotting.convert import convert_heavy_tail_to_sequence
+from src.system_analysis.taskutils import bary_expansion, get_domain_num, t
+
+import lib.eq_finder.SystOsscills as so
+from src.system_analysis.find_equilibrium import correct_equilibrium_coords, find_init_pts
 
 DIM = 4
 DIM_REDUCED = DIM - 1
-THREADS_PER_BLOCK = 512
-
 INFINITY = 10
 
 KneadingDoNotEndError = -0.1
-InfinityError = -0.2
-NoInitFound = -0.3
-
-
-def det4x4(m):
-    det = 0.0
-    sign = 1.0
-
-    minor = [0.] * 9
-
-    for col in range(4):
-        minor_row_idx = 0
-        for i in range(1, 4):
-            minor_col_idx = 0
-            for j in range(4):
-                if j != col:
-                    minor[minor_row_idx * 3 + minor_col_idx] = m[i * 4 + j]
-                    minor_col_idx += 1
-            minor_row_idx += 1
-
-        det_minor = (
-            minor[0] * (minor[4] * minor[8] - minor[5] * minor[7]) -
-            minor[1] * (minor[3] * minor[8] - minor[5] * minor[6]) +
-            minor[2] * (minor[3] * minor[7] - minor[4] * minor[6])
-        )
-
-        det += sign * m[0 * 4 + col] * det_minor
-        sign *= -1.0
-    return det
-
-
-def bary_expansion(pt):
-    pt_o = [0.] * 3
-    pt_a = [0.] * 3
-    pt_b = [0.] * 3
-    pt_c = [0.] * 3
-    pt_w = [0.] * 3
-    vec_wa = [0.] * 3
-    vec_wb = [0.] * 3
-    vec_wc = [0.] * 3
-    vec_wo = [0.] * 3
-    mat_bary = [0.] * 16
-    rhs = [0.] * 4
-
-    pt_o[0] = 0.0; pt_o[1] = 0.0; pt_o[2] = 0.0
-    pt_a[0] = 0.0; pt_a[1] = 0.0; pt_a[2] = 2 * np.pi
-    pt_b[0] = 0.0; pt_b[1] = 2 * np.pi; pt_b[2] = 2 * np.pi
-    pt_c[0] = 2 * np.pi; pt_c[1] = 2 * np.pi; pt_c[2] = 2 * np.pi
-
-    pt_w[0] = 0.25 * (pt_a[0] + pt_b[0] + pt_c[0] - 3 * pt_o[0])
-    pt_w[1] = 0.25 * (pt_a[1] + pt_b[1] + pt_c[1] - 3 * pt_o[1])
-    pt_w[2] = 0.25 * (pt_a[2] + pt_b[2] + pt_c[2] - 3 * pt_o[2])
-
-    for i in range(3):
-        vec_wa[i] = pt_a[i] - pt_w[i]
-        vec_wb[i] = pt_b[i] - pt_w[i]
-        vec_wc[i] = pt_c[i] - pt_w[i]
-        vec_wo[i] = pt_o[i] - pt_w[i]
-
-        mat_bary[4 * i] = vec_wa[i]
-        mat_bary[4 * i + 1] = vec_wb[i]
-        mat_bary[4 * i + 2] = vec_wc[i]
-        mat_bary[4 * i + 3] = vec_wo[i]
-
-        rhs[i] = pt[i] - pt_w[i]
-
-    mat_bary[12] = 1.; mat_bary[13] = 1.; mat_bary[14] = 1.; mat_bary[15] = 1.
-    rhs[3] = 1.
-
-    main_det = det4x4(mat_bary)
-
-    bary_coords = [0.] * 4
-
-    if abs(main_det) < 1e-12:
-        bary_coords[:] = 0.
-        return bary_coords
-
-    # заполняем координаты решая систему методом Крамера
-    for col in range(4):
-        modified_mat = mat_bary.copy()
-        for row in range(4):
-            modified_mat[4 * row + col] = rhs[row]
-
-        coord_det = det4x4(modified_mat)
-        bary_coords[col] = coord_det / main_det
-
-    return bary_coords
-
-
-def get_domain_num(bary_expansion):
-    min_coord = bary_expansion[0]
-    i = 0
-    domain_num = i
-    while i < 4:
-        if bary_expansion[i] < min_coord:
-            min_coord = bary_expansion[i]
-            domain_num = i
-        i += 1
-    return domain_num
+InfinityError = -0.85
+InEquilibriumError = -0.20
+NoInitFoundError = -1.0
 
 
 def full_rhs(params, phis):
@@ -132,13 +37,12 @@ def reduced_rhs(params, psis):
 def avg_face_dist_deriv(params, pt):
     """Average distance from the point to the faces of the thetrahedron"""
     x, y, z = pt
-    sys_curr = reduced_rhs(params, pt)  # добавил params
+    sys_curr = reduced_rhs(params, pt)
     afdd = (1.0*x - 0.5*y) * sys_curr[0] + (-0.5*x + 1.0*y - 0.5*z) * sys_curr[1] + (-0.5*y + 1.0*z - np.pi) * sys_curr[2]
     return afdd
 
 
 def stepper_rk4(params, y_curr, dt):
-    """Makes RK-4 step and saves the value in y_curr"""
     k1 = reduced_rhs(params, y_curr)
 
     y_temp = [y_curr[i] + k1[i] * dt / 2.0 for i in range(DIM_REDUCED)]
@@ -153,138 +57,175 @@ def stepper_rk4(params, y_curr, dt):
     return [y_curr[i] + (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0 for i in range(DIM_REDUCED)]
 
 
-def integrator_rk4(y_curr, a, b, dt, n, stride, kneadings_start, kneadings_end):
-    """Calculates kneadings during integration"""
-    # n -- количество шагов интегрирования
-    # stride -- через сколько шагов начинаем считать нидинги
-    # first_derivative_curr, prev -- значения производных системы на текущем шаге и на предыдущем
-
-    print(f'starting calculating with {y_curr} {a,b}')
-
-    deriv_prev = 0
-    deriv_curr = 0
-    kneading_index = 0
-    kneadings_weighted_sum = 0
-    domain_num = 0
-
-    w = 0  # ЭТИ ПАРАМЕТРЫ НУЖНО ПЕРЕДАВАТЬ ИЗ КОНФИГА
-    r = 1  # ЭТИ ПАРАМЕТРЫ НУЖНО ПЕРЕДАВАТЬ ИЗ КОНФИГА
-
-    params = [w, a, b, r]
-
-    deriv_prev = avg_face_dist_deriv(params, y_curr)
-
-    for i in range(1, n):
-
-        for j in range(stride):
-            y_curr = stepper_rk4(params, y_curr, dt)
-
-        bary_coords = bary_expansion(y_curr)  # получаем барицентрические координаты точки
-        domain_num = get_domain_num(bary_coords)  # получаем номер её подтетраэдра
-
-        for k in range(DIM_REDUCED):
-            if y_curr[k] > INFINITY or y_curr[k] < -INFINITY:
-                print('infinity')
-                return InfinityError
-
-        deriv_curr = avg_face_dist_deriv(params, y_curr)
-
-        # проверяем, происходит ли max по расстоянию
-        if deriv_prev > 0 > deriv_curr:
-
-            if kneading_index >= kneadings_start:
-                kneadings_weighted_sum += domain_num * 1 / (4.0 ** (-kneading_index + kneadings_end + 1))
-            kneading_index += 1
-
-        deriv_prev = deriv_curr
-
-        if kneading_index > kneadings_end:
-            print(kneadings_weighted_sum)
-            return kneadings_weighted_sum
-
-    print('did not end')
-    return KneadingDoNotEndError
+def heavy_tail(state_curr, kneading_index, kneadings_end):
+    curr_bary = bary_expansion(state_curr)
+    curr_domain = get_domain_num(curr_bary)
+    return curr_domain * 1 / (4.0 ** (-kneading_index + kneadings_end + 1))
 
 
-def sweep(
-    inits,
-    nones,
-    alphas,
-    betas,
-    up_n,
-    down_n,
-    left_n,
-    right_n,
-    dt,
-    n,
-    stride,
-    kneadings_start,
-    kneadings_end,
-):
-    """Calls CUDA kernel and gets kneadings set back from GPU"""
-    results = []
+def get_plane_coeffs(pt1, pt2, pt3):
+    v1 = pt2 - pt1
+    v2 = pt3 - pt2
+    cp = np.cross(v1, v2)
+    d = -np.dot(cp, pt1)
+    return np.array([cp[0], cp[1], cp[2], d])
 
-    for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
-        init = [0.] * DIM_REDUCED
 
-        if idx not in nones:
-            init[0] = inits[idx * DIM_REDUCED + 0]
-            init[1] = inits[idx * DIM_REDUCED + 1]
-            init[2] = inits[idx * DIM_REDUCED + 2]
+def plane_func(pt, plane_coeffs):
+    return np.dot(plane_coeffs[:3], pt) + plane_coeffs[3]
 
-            result = integrator_rk4(init, alphas[idx], betas[idx], dt, n, stride, kneadings_start, kneadings_end)
-        else:
-            print(f'no init found for {init} {alphas[idx], betas[idx]}')
-            result = NoInitFound
 
-        results.append(result)
+def set_poincare_section_coeffs(domain_num, inner_sf):
+    pt1 = np.array([0.5 * np.pi, 1.0 * np.pi, 1.5 * np.pi])  # pt_w
 
-    return results
+    if domain_num == 0:
+        pt2 = np.array([1.0 * np.pi, 2.0 * np.pi, 2.0 * np.pi])
+    elif domain_num == 1:
+        pt2 = np.array([1.0 * np.pi, 1.0 * np.pi, 1.0 * np.pi])
+    elif domain_num == 2:
+        pt2 = np.array([0.0, 0.0, 1.0 * np.pi])
+    elif domain_num == 3:
+        pt2 = np.array([0.0, 1.0 * np.pi, 2.0 * np.pi])
+
+    inner_sf_temp = inner_sf.copy()
+    for _ in range(domain_num):
+        inner_sf_temp = t(inner_sf_temp)
+
+    coeffs = get_plane_coeffs(pt1, pt2, inner_sf_temp)
+
+    if domain_num == 0 or domain_num == 2:
+        coeffs = -coeffs
+    return coeffs
+
+
+def event_cross_plane(state_prev, state_curr, inner_sf):
+    prev_bary = bary_expansion(state_prev)
+    prev_domain = get_domain_num(prev_bary)
+    prev_coeffs = set_poincare_section_coeffs(prev_domain, inner_sf)
+    prev_pl_val = plane_func(state_prev, prev_coeffs)
+
+    curr_bary = bary_expansion(state_curr)
+    curr_domain = get_domain_num(curr_bary)
+    curr_coeffs = set_poincare_section_coeffs(curr_domain, inner_sf)
+    curr_pl_val = plane_func(state_curr, curr_coeffs)
+
+    if prev_domain == curr_domain:
+        if prev_pl_val < 0 < curr_pl_val:
+            return True
+    return False
+
+
+def make_integrator_rk4(event_condition, kneading_evaluator):
+    def integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end, inner_sf, debug=True):
+        y_prev = y_curr.copy()
+        kneading_index = 0
+        kneadings_weighted_sum = 0
+
+        trajectory = np.zeros((n, DIM_REDUCED))
+        trajectory[0] = y_curr.copy()
+        extrs = []
+        ns = []
+        last_n = 0
+
+        for i in range(1, n):
+            for j in range(stride):
+                y_curr = stepper_rk4(params, y_curr, dt)
+            trajectory[i] = y_curr.copy()
+
+            infinity_flag = 0
+            for k in range(DIM_REDUCED):
+                if y_curr[k] > INFINITY or y_curr[k] < -INFINITY:
+                    infinity_flag = 1
+            if infinity_flag:
+                break
+
+            # print(abs(y_curr[0]), abs(y_curr[1]), abs(y_curr[2]))
+            if abs(y_curr[0]) < 1e-8 and abs(y_curr[1]) < 1e-8 and abs(y_curr[2]) < 1e-8:
+                if debug: print("НЕДОСЧЁТ")
+                break
+
+            if event_condition(y_prev, y_curr, inner_sf):
+                if kneading_index >= kneadings_start:
+                    kneadings_weighted_sum += kneading_evaluator(y_curr, kneading_index, kneadings_end)
+
+                    if debug:
+                        curr_bary = bary_expansion(y_curr)
+                        curr_domain = get_domain_num(curr_bary)
+                        print(curr_domain)
+
+                kneading_index += 1
+                extrs.append(y_curr.copy())
+                ns.append(i)
+                if debug: print("ПОВЫСИЛИ ИНДЕКС")
+
+            last_n = i
+            if kneading_index > kneadings_end:
+                break
+
+            y_prev = y_curr.copy()
+
+        if debug: print("КОНЕЦ")
+        return kneadings_weighted_sum, trajectory[:last_n], ns, np.array(extrs), last_n
+
+    return integrator_rk4
+
+
+# def sweep(
+#         inits, nones, params_x, params_y, def_params,
+#         param_x_idx, param_y_idx,
+#         dt, n, stride, kneadings_start, kneadings_end,
+#         inner_sf_set
+# ):
+#     total_size = len(params_x)
+#     results = np.zeros(total_size)
+#
+#     get_kneading = make_get_kneading_generalized(event_cross_plane, heavy_tail)
+#
+#     for idx in range(total_size):
+#         if idx in nones:
+#             results[idx] = NoInitFoundError
+#             continue
+#
+#         current_params = def_params.copy()
+#         current_params[param_x_idx] = params_x[idx]
+#         current_params[param_y_idx] = params_y[idx]
+#
+#         init_point = inits[idx * DIM_REDUCED: (idx + 1) * DIM_REDUCED]
+#
+#         if len(inner_sf_set) == DIM_REDUCED:
+#             current_inner_sf = inner_sf_set
+#         else:
+#             current_inner_sf = inner_sf_set[idx * DIM_REDUCED: (idx + 1) * DIM_REDUCED]
+#
+#         res_tuple = get_kneading(
+#             init_point, current_params, dt, n, stride,
+#             kneadings_start, kneadings_end, current_inner_sf
+#         )
+#
+#         results[idx] = res_tuple[0]
+#
+#     return results
 
 
 if __name__ == "__main__":
-    dt = 0.01
-    n = 50000
-    stride = 1
-    max_kneadings = 7
+    # a: -2.878590800000000, b: -1.678849700000000 => 1000000000 (Raw: 9.5367431640625e-07)
 
-    inits_data = np.load(r'../src/system_analysis/inits.npz')
+    params = [0.0, -2.8785920, -1.6788497, 1.0]
+    sys = so.FourBiharmonicPhaseOscillators(*params)
+    reduced_rhs_wrapper = sys.getReducedSystem
+    reduced_jac_wrapper = sys.getReducedSystemJac
 
-    inits = inits_data['inits']
-    nones = inits_data['nones']
-    alphas = inits_data['alphas']
-    betas = inits_data['betas']
-    up_n = inits_data['up_n']
-    down_n = inits_data['down_n']
-    left_n = inits_data['left_n']
-    right_n = inits_data['right_n']
+    # start_eq = [0.0, 2.30956058, 4.75652024]
+    inner_sf = [1.427257804280822, 3.2091500304528755, 4.414529919493724]
 
-    kneadings_weighted_sum_set = sweep(
-        inits,
-        nones,
-        alphas,
-        betas,
-        up_n,
-        down_n,
-        left_n,
-        right_n,
-        dt,
-        n,
-        stride,
-        0,
-        max_kneadings
-    )
+    # start_eq = correct_equilibrium_coords(reduced_rhs, reduced_jac, start_eq)
+    inner_sf = correct_equilibrium_coords(reduced_rhs_wrapper, reduced_jac_wrapper, inner_sf)
+    y_curr = list(find_init_pts(sys))
+    print(y_curr, inner_sf)
 
-    np.savez(
-        'kneadings_cpu_version.npz',
-        kneadings=kneadings_weighted_sum_set
-    )
-
-    print("Results:")
-    for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
-        kneading_weighted_sum = kneadings_weighted_sum_set[idx]
-        kneading_symbolic = convert_heavy_tail_to_sequence(kneading_weighted_sum, 4, max_kneadings)
-
-        print(f"a: {alphas[idx]:.6f}, "
-              f"b: {betas[idx]:.6f} => "
-              f"{kneading_symbolic} (Raw: {kneading_weighted_sum})")
+    event_condition = event_cross_plane
+    kneading_evaluator = heavy_tail
+    integrator_rk4 = make_integrator_rk4(event_condition, kneading_evaluator)
+    kneadings_weighted_sum, trajectory, ns, extrs, last_n = integrator_rk4(y_curr, params, dt=0.01, n=300000, stride=1,
+                                                                           kneadings_start=0, kneadings_end=20,
+                                                                           inner_sf=inner_sf)

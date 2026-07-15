@@ -23,46 +23,34 @@ defaultSystem:
 # "caption": LaTeX version of parameter name, used for plotting
 grid:
   first:
-    left_n: 5
-    right_n: 5
+    left_n: 800
+    right_n: 400
     left_step: 0.001
     right_step: 0.001
     name: a
     caption: \alpha
   second:
-    down_n: 5
-    up_n: 5
+    down_n: 600
+    up_n: 800
     down_step: 0.001
     up_step: 0.001
-    name: b
-    caption: \beta
+    name: r
+    caption: r
 # name of the task to perform
-task: symmetry_detectives
+task: kneadings
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
 sf_grid:
   start_eq: [0.0, 2.30956058, 4.75652024]
   inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
-  input_data:
+  input_data: './output/a_r/bigger/a_r_bigger_1-5.hdf5'
 kneadings:
   dt: 0.01
-  n: 50000
+  n: 200000
   stride: 1
   kneadings_start: 0
-  kneadings_end: 7
-  input_data:
-periodicity:
-  dt: 0.01
-  n: 50000
-  stride: 1
-  kneadings_start: 0
-  kneadings_end: 3
-  input_data:
-symmetry_detectives:
-  dt: 0.01
-  nStepsSkip: 000_00
-  nStepsAttractor: 10_00
+  kneadings_end: 2
   input_data:
 # route task
 # "mode": "attr" or "sepbif"
@@ -83,7 +71,7 @@ route:
 # "imageExtension": used specifically for images
 output:
   directory: "./output/"
-  mask: test
+  mask: a_r_bigger
   useTimestamp: file
   imageExtension: png
 # some functions might use additional keyword-arguments
@@ -95,14 +83,14 @@ misc:
       lines.color: black
       lines.markersize: 16
 #      font.size: 26          # the default font size for text, given in points.
-      xtick.labelsize: 16    # font size of the x tick labels
-      ytick.labelsize: 16    # font size of the y tick labels
-      axes.titlesize: 16     # font size of the axes title
-      axes.labelsize: 16     # font size of the x and y labels
+      xtick.labelsize: 20    # font size of the x tick labels
+      ytick.labelsize: 20    # font size of the y tick labels
+      axes.titlesize: 26     # font size of the axes title
+      axes.labelsize: 26     # font size of the x and y labels
 #      figure.titlesize: 20   # size of the figure title (``Figure.suptitle()``)
 #      figure.labelsize: 20   # size of the figure label (``Figure.sup[x|y]label()``)
-      figure.dpi: 100
-      savefig.dpi: 300
+      figure.dpi: 72
+      savefig.dpi: 600
   views:
     view_1:
       elev: 60
