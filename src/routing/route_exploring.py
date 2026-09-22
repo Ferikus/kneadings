@@ -58,10 +58,12 @@ def slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, save_dir):
 
     plot_settings = config['misc']['plot_settings']['2d']
     plt.rcParams.update(plot_settings)
+    scatter_s = plot_settings['lines.markersize']
+    scatter_linewidth = plot_settings['lines.linewidth']
 
     def set_color_map():
         return set_random_color_map(4, kneadings_len)
-    plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings)
+    fig = plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings)
 
     # отрисовка среза
     plt.plot([pt1[0], pt2[0]], [pt1[1], pt2[1]], solid_capstyle='round', c='black')
@@ -69,13 +71,14 @@ def slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, save_dir):
     # отрисовка точек на срезе
     for coords in rep_pts_coords:
         rep_pt_x, rep_pt_y = coords
-        plt.scatter(rep_pt_x, rep_pt_y, marker='o', color=accent_color, s=100, linewidths=3, edgecolor='black', zorder=3)
+        plt.scatter(rep_pt_x, rep_pt_y, marker='o', color=accent_color, s=scatter_s, linewidths=scatter_linewidth, edgecolor='black', zorder=3)
 
     plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter sweep "
               f"of [{kneadings_start + 1}-{kneadings_end + 1}] length")
     plt.tight_layout()
     plt.savefig(f"{save_dir}/map.{img_ext}", bbox_inches='tight')
-    plt.show()
+    # plt.show()
+    return fig
 
 
 def make_target_point(idxs_list, coords_list, idx, val):

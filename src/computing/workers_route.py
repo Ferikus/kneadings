@@ -1,5 +1,6 @@
 import os
 from ast import literal_eval
+import matplotlib.pyplot as plt
 
 from src.computing.engines import (save_data, get_data, get_records_data,
                                    get_mode_map_data, get_inits_data, get_config_data)
@@ -57,8 +58,9 @@ def worker_route(config, initResult, timeStamp):
     output_dir = config['output']['directory']
     selected = config['route']['mode']
     output_suffix = f"{selected}_analysis"
-    saving_dir = os.path.join(output_dir, f"{config['output']['mask']}_{output_suffix}_{timeStamp}")
-    os.makedirs(saving_dir, exist_ok=True)
+    save_dir = os.path.join(output_dir, f"{config['output']['mask']}_{output_suffix}_{timeStamp}")
+    data_dir = os.path.join(save_dir, "data")
+    os.makedirs(data_dir, exist_ok=True)
 
     map_only = config['route']['map_only']
     if not map_only:
@@ -71,9 +73,9 @@ def worker_route(config, initResult, timeStamp):
             plot_target_attractors_func = plot_target_attractors_sepbif
 
         print("Plotting attractors for target points...")
-        plot_target_attractors_func(config, views, saving_dir, target_pts, convert_heavy_tail_to_sequence)
+        plot_target_attractors_func(config, views, save_dir, target_pts, convert_heavy_tail_to_sequence)
 
-    return {'saving_dir': saving_dir}
+    return {'save_dir': save_dir}
 
 
 @register(registry, 'post', 'route')
@@ -88,11 +90,12 @@ def post_route(config, initResult, workerResult, grid, startTime):
     pt2 = initResult['pt2']
     rep_pts_coords = initResult['rep_pts_coords']
 
-    saving_dir = workerResult['saving_dir']
+    save_dir = workerResult['save_dir']
 
     print("Slicing the mode map...")
-    slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, saving_dir)
+    fig = slice_mode_map(config, kneadings_data, rep_pts_coords, pt1, pt2, save_dir)
+    plt.close(fig)
 
-    hdf5_outname = makeFinalOutname(config, {'targetDir': saving_dir}, "hdf5", startTime)
+    hdf5_outname = makeFinalOutname(config, {'targetDir': save_dir}, "hdf5", startTime)
     save_data(hdf5_outname, kneadings_data, kneadings_records, mode_map_data, inits, nones, inner_sf_set, config)
     print("Dataset successfully saved")

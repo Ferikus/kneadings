@@ -8,7 +8,8 @@ from itertools import groupby
 
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
-from tests.cpu_version import bary_expansion, get_domain_num, stepper_rk4, make_integrator_rk4, event_cross_plane, heavy_tail
+from tests.cpu_version import (full_rhs, reduced_rhs, bary_expansion, get_domain_num, stepper_rk4, make_integrator_rk4,
+                               event_cross_plane, heavy_tail)
 from src.system_analysis.thetrahedron import *
 from src.system_analysis.get_inits import find_equilibrium_by_guess
 from src.system_analysis.find_equilibrium import correct_equilibrium_coords, find_init_pts
@@ -51,25 +52,61 @@ def color_pt_by_domain(pt):
     return color_scheme[get_domain_num(bary_expansion(pt))]
 
 
-def compute_trajectory(y_curr, params, n, dt):
+def compute_trajectory(rhs, y_curr, params, n, dt):
     """Считает траекторию при заданных начальных условиях"""
-    trajectory = np.zeros((n, 3))
+    dim = len(y_curr)
+    trajectory = np.zeros((n, dim))
     trajectory[0] = y_curr
-    last_n = 0
+    last_n = n
 
     for i in range(1, n):
-        y_curr = stepper_rk4(params, y_curr, dt)
+        y_curr = stepper_rk4(rhs, params, y_curr, dt)
         trajectory[i] = y_curr
 
-        for k in range(3):
-            if y_curr[k] > 10 or y_curr[k] < -10:
-                print('InfinityError')
-                return trajectory
+        if np.isinf(y_curr).any():
+            print("INFINITY")
+            last_n = i
+            break
 
-        last_n = i
+        rhs_vals = rhs(params, y_curr)
+        if i % 50_000 == 0:
+            print(f"{i}: {rhs_vals}")
+        if np.all(abs(np.asarray(rhs_vals)) < 1e-8):
+            print("STUCK IN EQUILIBRIUM")
+            print(y_curr)
+            last_n = i
+            break
 
     trajectory = (trajectory[:last_n]).T
     return trajectory
+
+
+def save_trajectory_to_txt(filepath, params, trajectory, var_names):
+    """Saves trajectory into a .txt file"""
+    w, a, b, r = params
+    dim = trajectory.shape[0]
+
+    header = (
+        f"w = {w}\n"
+        f"alpha = {a}\n"
+        f"beta = {b}\n"
+        f"r = {r}\n"
+        f"{'  '.join(var_names)}\n"
+        f"{'  '.join(str(i) for i in range(dim))}"
+    )
+
+    np.savetxt(filepath, trajectory.T, fmt='%+.15f', delimiter=' ', header=header)
+
+
+def save_trajectory_to_npz(filepath, params, trajectory, var_names):
+    """Saves trajectory into a .npz file"""
+    w, a, b, r = params
+    np.savez_compressed(
+        filepath,
+        data=np.ascontiguousarray(trajectory.T),
+        params=np.array([w, a, b, r], dtype=np.float64),
+        var_names=np.array(var_names)
+    )
 
 
 def get_eqs_on_inv_plane(params):
@@ -102,7 +139,7 @@ def get_eqs_on_inv_plane(params):
 def get_face_sf_trajectory(params, n, dt):
     sys = so.FourBiharmonicPhaseOscillators(*params)
     init_psis = list(find_init_pts(sys))
-    traj = compute_trajectory(init_psis, params, n, dt)
+    traj = compute_trajectory(reduced_rhs, init_psis, params, n, dt)
     return traj
 
 
@@ -113,18 +150,29 @@ def get_face_sf_trajectories(params_set, n, dt):
     return trajs
 
 
+def get_face_sf_trajectory_3d_4d(params, n, dt):
+    sys = so.FourBiharmonicPhaseOscillators(*params)
+    init_psis = list(find_init_pts(sys))
+    init_phi = [0.0] + init_psis
+
+    traj_4d = compute_trajectory(full_rhs, init_phi, params, n, dt)
+    traj_3d = traj_4d[1:4] - traj_4d[0:1]
+
+    return traj_3d, traj_4d
+
+
 def get_kneadings_trajectory(params, dt, n, stride, kneadings_start, kneadings_end, debug=True):
     event_condition = event_cross_plane
     kneading_evaluator = heavy_tail
     integrator_rk4 = make_integrator_rk4(event_condition, kneading_evaluator)
 
     sys = so.FourBiharmonicPhaseOscillators(*params)
-    reduced_rhs = sys.getReducedSystem
-    reduced_jac = sys.getReducedSystemJac
+    _reduced_rhs = sys.getReducedSystem
+    _reduced_jac = sys.getReducedSystemJac
 
     y_curr = list(find_init_pts(sys))
     inner_sf = [1.427257804280822, 3.2091500304528755, 4.414529919493724]
-    inner_sf = correct_equilibrium_coords(reduced_rhs, reduced_jac, inner_sf)
+    inner_sf = correct_equilibrium_coords(_reduced_rhs, _reduced_jac, inner_sf)
 
     kneadings_weighted_sum, trajectory, ns, extrs, last_n = integrator_rk4(y_curr, params, dt, n, stride, kneadings_start, kneadings_end, inner_sf=inner_sf, debug=debug)
     return kneadings_weighted_sum, trajectory, ns, extrs, last_n
@@ -205,7 +253,7 @@ def plot_saddle_at_sepbif(ax, trajs, params1, params2, threshold, n, dt, ps=sf.S
             if saddle_init_pts:
                 for init in saddle_init_pts:
                     init = list(init)
-                    traj_saddle = compute_trajectory(init, params_avg, n, dt)
+                    traj_saddle = compute_trajectory(reduced_rhs, init, params_avg, n, dt)
                     ax.plot(traj_saddle[0], traj_saddle[1], traj_saddle[2],
                             color=saddle_color, linewidth=8, alpha=0.25, zorder=1)
     elif eq_obj is None:
@@ -277,7 +325,7 @@ def plot_attractors_plt(trajs, views, plot_placeholder, start_pt=0, directory=""
             if start_pt == 0:
                 ax.scatter(traj[0][0], traj[1][0], traj[2][0], c=color_palette['green'], s=100, marker='D')
     else:
-        cycle_colors = cycle(['tab:red', 'tab:green', 'tab:blue', 'tab:pink'])  # cycle(mcolors.TABLEAU_COLORS)
+        cycle_colors = cycle(['tab:red', 'tab:green', 'tab:blue', 'tab:pink'])  # T0 T2 T1 T3  cycle(mcolors.TABLEAU_COLORS)
         for i, traj in enumerate(trajs):
             if start_pt == 0:
                 ax.scatter(traj[0][0], traj[1][0], traj[2][0], c='tab:green', s=100, marker='D')

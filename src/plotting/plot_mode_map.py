@@ -149,15 +149,15 @@ def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_captio
     return fig
 
 
-def plot_periodicity_data(periods_data, param_x_caption, param_y_caption, plot_settings):
-    idxs_x, idxs_y, params_x, params_y, period_set = periods_data
+def plot_complexity_data(complexity_data, param_x_caption, param_y_caption, plot_settings):
+    idxs_x, idxs_y, params_x, params_y, complexity_set = complexity_data
 
     fig, unique_x, unique_y, nx, ny = prepare_mode_map(
         params_x, params_y, param_x_caption, param_y_caption, plot_settings
     )
 
     grid_matrix = np.full((ny, nx), -1.0)
-    grid_matrix[idxs_y, idxs_x] = period_set
+    grid_matrix[idxs_y, idxs_x] = complexity_set
     plot_data = np.ma.masked_where(grid_matrix < 0, grid_matrix)
 
     custom_cmap = plt.get_cmap('gist_rainbow').copy()
@@ -172,7 +172,7 @@ def plot_periodicity_data(periods_data, param_x_caption, param_y_caption, plot_s
                    rasterized=True)
 
     # legend
-    legend_vals = np.unique([val for val in period_set if val > 0]).astype(int)
+    legend_vals = np.unique([val for val in complexity_set if val > 0]).astype(int)
     norm = colors.Normalize(vmin=1.0, vmax=4.0)
 
     legend_patches = [
@@ -182,7 +182,46 @@ def plot_periodicity_data(periods_data, param_x_caption, param_y_caption, plot_s
     ]
     plt.legend(
         handles=legend_patches,
-        title="Period complexity",
+        title="Complexity",
+        loc='upper left',
+        bbox_to_anchor=(1.05, 1),
+        borderaxespad=0.
+    )
+
+    return fig
+
+
+def plot_regularity_data(regularity_data, param_x_caption, param_y_caption, plot_settings):
+    idxs_x, idxs_y, params_x, params_y, regularity_set = regularity_data
+
+    fig, unique_x, unique_y, nx, ny = prepare_mode_map(
+        params_x, params_y, param_x_caption, param_y_caption, plot_settings
+    )
+
+    grid_matrix = np.full((ny, nx), -1.0)
+    grid_matrix[idxs_y, idxs_x] = regularity_set
+    plot_data = np.ma.masked_where(grid_matrix < 0, grid_matrix)
+
+    custom_cmap = colors.ListedColormap(['black'])
+    custom_cmap.set_over('white')
+    custom_cmap.set_bad('gray')
+
+    plt.pcolormesh(unique_x, unique_y,
+                   plot_data,
+                   cmap=custom_cmap,
+                   shading='nearest',
+                   vmin=-1e-6, vmax=1e-6,
+                   rasterized=True)
+
+    # legend
+    legend_patches = [
+        mpatches.Patch(color='white', label='Regular'),
+        mpatches.Patch(color='black', label='Irregular'),
+        mpatches.Patch(color='gray', label='Error'),
+    ]
+    plt.legend(
+        handles=legend_patches,
+        title="Regularity",
         loc='upper left',
         bbox_to_anchor=(1.05, 1),
         borderaxespad=0.
