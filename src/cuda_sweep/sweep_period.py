@@ -21,8 +21,11 @@ MAX_KNEADINGS_LENGTH = 20_000
 MAX_PERIOD_LENGTH = MAX_KNEADINGS_LENGTH // 2
 ALPHABET_SIZE = 4
 
-CannotProcessPeriodError = -1
-
+# CannotProcessSequenceError = -1
+KneadingDoNotEndError = -0.1
+InfinityError = -0.85
+InEquilibriumError = -0.20
+NoInitFoundError = -1.0
 
 @cuda.jit(device=True)
 def find_period_of_sequence(sequence, len_sequence):
@@ -42,9 +45,26 @@ def find_period_of_sequence(sequence, len_sequence):
 
 
 @cuda.jit(device=True)
+def find_complexity_of_sequence(sequence, len_sequence):
+    period_charset = cuda.local.array(ALPHABET_SIZE, dtype=np.int8)
+    complexity = 0
+
+    for i in range(len_sequence):
+        char_is_new = True
+        for j in range(complexity):
+            if period_charset[j] == sequence[i]:
+                char_is_new = False
+                break
+        if char_is_new:
+            period_charset[complexity] = sequence[i]
+            complexity += 1
+
+    return complexity
+
+
+@cuda.jit(device=True)
 def find_period_complexity_of_sequence(sequence, len_sequence):
     period = cuda.local.array(MAX_PERIOD_LENGTH, dtype=np.int8)
-    period_charset = cuda.local.array(ALPHABET_SIZE, dtype=np.int8)
 
     max_period = len_sequence // 2
     period_found = True
@@ -59,16 +79,17 @@ def find_period_complexity_of_sequence(sequence, len_sequence):
 
         if period_found:
             # calculate period complexity as array length now
-            complexity = 0
-            for i in range(curr_period):
-                char_is_new = True
-                for j in range(complexity):
-                    if period_charset[j] == period[i]:
-                        char_is_new = False
-                        break
-                if char_is_new:
-                    period_charset[complexity] = period[i]
-                    complexity += 1
+            # complexity = 0
+            # for i in range(curr_period):
+            #     char_is_new = True
+            #     for j in range(complexity):
+            #         if period_charset[j] == period[i]:
+            #             char_is_new = False
+            #             break
+            #     if char_is_new:
+            #         period_charset[complexity] = period[i]
+            #         complexity += 1
+            complexity = find_complexity_of_sequence(period, curr_period)
             break
 
     return complexity if period_found else 0
@@ -95,11 +116,11 @@ def make_integrator_rk4_for_sequence(event_condition, process_sequence):
 
             for j in range(DIM_REDUCED):
                 if abs(y_curr[j]) > INFINITY:
-                    return CannotProcessPeriodError
+                    return InfinityError  # CannotProcessSequenceError
 
             reduced_rhs(params, y_curr, rhs)
             if abs(rhs[0]) < 1e-8 and abs(rhs[1]) < 1e-8 and abs(rhs[2]) < 1e-8:
-                return CannotProcessPeriodError
+                return InEquilibriumError  # CannotProcessSequenceError
 
             if event_condition(params, y_prev, y_curr, misc):
                 # write the symbol into the sequence array
@@ -121,7 +142,7 @@ def make_integrator_rk4_for_sequence(event_condition, process_sequence):
             for k in range(DIM_REDUCED):
                 y_prev[k] = y_curr[k]
 
-        return CannotProcessPeriodError
+        return KneadingDoNotEndError  # CannotProcessSequenceError
 
     return integrator_rk4_for_sequence
 
@@ -159,7 +180,7 @@ def make_sweep_period_threads(event_condition, process_sequence):
             for i in range(len(nones)):
                 if idx == nones[i]:
                     is_in_nones = True
-                    period_set[idx] = CannotProcessPeriodError
+                    period_set[idx] = NoInitFoundError
                     break
             if is_in_nones == False:
                 init = cuda.local.array(DIM_REDUCED, dtype=np.float64)
@@ -212,8 +233,8 @@ def make_sweep_for_sequence(event_condition, process_sequence):
         assert len(misc_set) == MISC_DATA_BLOCK_LEN or total_parameter_space_size == len(misc_set) / MISC_DATA_BLOCK_LEN, \
             "Failed to unpack misc"
 
-        result_set = np.zeros(total_parameter_space_size, dtype=np.int8)
-        result_set_gpu = cuda.device_array(total_parameter_space_size, dtype=np.int8)
+        result_set = np.zeros(total_parameter_space_size, dtype=np.float64)  # np.int8
+        result_set_gpu = cuda.device_array(total_parameter_space_size, dtype=np.float64)  # np.int8
 
         inits_gpu = cuda.to_device(inits)
         nones_gpu = cuda.to_device(nones)
@@ -261,6 +282,26 @@ def make_sweep_for_sequence(event_condition, process_sequence):
         return result_set
 
     return sweep_for_sequence
+
+
+def sweep_regularity(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
+                            up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set):
+    # set up for integrator
+    event_condition = event_cross_plane
+    process_sequence = find_period_of_sequence
+    sweep_for_sequence = make_sweep_for_sequence(event_condition, process_sequence)
+    return sweep_for_sequence(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
+                              up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set)
+
+
+def sweep_complexity(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
+                     up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set):
+    # set up for integrator
+    event_condition = event_cross_plane
+    process_sequence = find_complexity_of_sequence
+    sweep_for_sequence = make_sweep_for_sequence(event_condition, process_sequence)
+    return sweep_for_sequence(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
+                              up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set)
 
 
 def sweep_period_complexity(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,

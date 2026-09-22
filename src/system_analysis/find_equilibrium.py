@@ -76,15 +76,15 @@ def find_init_pts(sys):
 
     for eq in equilibria:  # перебираем все с.р., которые были найдены
         if sf.has1DUnstable(eq, sf.STD_PRECISION):
-            start_eq = np.array(eq.coordinates)
-            if sf.is3DSaddleWith1dU(eq, sf.STD_PRECISION):
-                print(f"Found saddle {start_eq}")
-            elif sf.is3DSaddleFocusWith1dU(eq, sf.STD_PRECISION):
-                print(f"Found saddle-focus {start_eq}")
+            # start_eq = np.array(eq.coordinates)
+            # if sf.is3DSaddleWith1dU(eq, sf.STD_PRECISION):
+            #     print(f"Found saddle {start_eq}")
+            # elif sf.is3DSaddleFocusWith1dU(eq, sf.STD_PRECISION):
+            #     print(f"Found saddle-focus {start_eq}")
             if sf.getInitPointsOnUnstable1DSeparatrix(eq, sf.pickCirSeparatrix, sf.STD_PRECISION):
                 init_pt = sf.getInitPointsOnUnstable1DSeparatrix(eq, sf.pickCirSeparatrix, sf.STD_PRECISION)[0]
-                print(f"with starting point {init_pt}")
-                print(f"Eigenvalues: {eq.eigenvalues}")
+                # print(f"with starting point {init_pt}")
+                # print(f"Eigenvalues: {eq.eigenvalues}")
                 return init_pt
 
 

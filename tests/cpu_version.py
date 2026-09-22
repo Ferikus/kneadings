@@ -42,25 +42,27 @@ def avg_face_dist_deriv(params, pt):
     return afdd
 
 
-def stepper_rk4(params, y_curr, dt):
-    k1 = reduced_rhs(params, y_curr)
+def stepper_rk4(rhs, params, y_curr, dt):
+    dim = len(y_curr)
 
-    y_temp = [y_curr[i] + k1[i] * dt / 2.0 for i in range(DIM_REDUCED)]
-    k2 = reduced_rhs(params, y_temp)
+    k1 = rhs(params, y_curr)
 
-    y_temp = [y_curr[i] + k2[i] * dt / 2.0 for i in range(DIM_REDUCED)]
-    k3 = reduced_rhs(params, y_temp)
+    y_temp = [y_curr[i] + k1[i] * dt / 2.0 for i in range(dim)]
+    k2 = rhs(params, y_temp)
 
-    y_temp = [y_curr[i] + k3[i] * dt for i in range(DIM_REDUCED)]
-    k4 = reduced_rhs(params, y_temp)
+    y_temp = [y_curr[i] + k2[i] * dt / 2.0 for i in range(dim)]
+    k3 = rhs(params, y_temp)
 
-    return [y_curr[i] + (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0 for i in range(DIM_REDUCED)]
+    y_temp = [y_curr[i] + k3[i] * dt for i in range(dim)]
+    k4 = rhs(params, y_temp)
+
+    return [y_curr[i] + (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6.0 for i in range(dim)]
 
 
 def heavy_tail(state_curr, kneading_index, kneadings_end):
     curr_bary = bary_expansion(state_curr)
     curr_domain = get_domain_num(curr_bary)
-    return curr_domain * 1 / (4.0 ** (-kneading_index + kneadings_end + 1))
+    return curr_domain * 1 / (4.0 ** (-kneading_index + kneadings_end + 1))  # np.longdouble
 
 
 def get_plane_coeffs(pt1, pt2, pt3):
@@ -129,7 +131,7 @@ def make_integrator_rk4(event_condition, kneading_evaluator):
 
         for i in range(1, n):
             for j in range(stride):
-                y_curr = stepper_rk4(params, y_curr, dt)
+                y_curr = stepper_rk4(reduced_rhs, params, y_curr, dt)
             trajectory[i] = y_curr.copy()
 
             infinity_flag = 0

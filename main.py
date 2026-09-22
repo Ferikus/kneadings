@@ -9,6 +9,8 @@ import src.computing.engines as engine
 from lib.computation_template.engine import workflow, getConfiguration, parseArguments
 
 ENGINE_REGISTRY = {'kneadings': engine.general_engine,
+                   'regularity': engine.general_engine,
+                   'complexity': engine.general_engine,
                    'periodicity': engine.general_engine,
                    'symmetry_detectives': engine.general_engine,
                    'route': engine.general_engine}

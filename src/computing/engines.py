@@ -3,6 +3,7 @@ import time
 import datetime
 import h5py
 import yaml
+import numpy as np
 import matplotlib.pyplot as plt
 
 from src.plotting.plot_mode_map import plot_mode_map, make_set_color_map

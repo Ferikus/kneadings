@@ -23,7 +23,7 @@ from lib.computation_template.workers_utils import register, makeFinalOutname
 from src.computing.workers import registry
 
 
-@register(registry, 'init', 'kneadings', 'periodicity', 'symmetry_detectives')
+@register(registry, 'init', 'kneadings', 'regularity', 'complexity', 'periodicity', 'symmetry_detectives')
 def init_kneadings_fbpo(config, timeStamp):
     def_sys_dict = config['defaultSystem']
     w = def_sys_dict['w']
@@ -56,9 +56,11 @@ def init_kneadings_fbpo(config, timeStamp):
     if input_data_path is not None:
         prev_config = get_config_data(input_data_path)
         check_config_correspondence(prev_config, config, ('sf_grid',))
-        kneadings_data = get_data(input_data_path)
         inits, nones, inner_sf_set = get_inits_data(input_data_path)
-        _, _, params_x, params_y, _ = kneadings_data
+        # kneadings_data = get_data(input_data_path, config)
+        # _, _, params_x, params_y, _ = kneadings_data
+        params_x, params_y = generate_parameters(param_x, param_y, up_n, down_n, left_n, right_n,
+                                                 up_step, down_step, left_step, right_step)
     else:
         start_sys = so.FourBiharmonicPhaseOscillators(w, a, b, r)
         reduced_rhs = start_sys.getReducedSystem
@@ -72,6 +74,21 @@ def init_kneadings_fbpo(config, timeStamp):
             start_eq = correct_equilibrium_coords(reduced_rhs, reduced_jac, start_eq)
             inner_sf = correct_equilibrium_coords(reduced_rhs, reduced_jac, inner_sf_guess)
 
+            start_eq_obj = sf.getEquilibriumInfo(start_eq, reduced_jac)
+            dt = config['kneadings']['dt']
+            if sf.has1DUnstable(start_eq_obj, sf.STD_PRECISION):
+                if dt <= 0:
+                    raise ValueError(f"dt must be positive for 1D unstable equilibrium, got dt = {dt}")
+                eq_type_condition = sf.has1DUnstable
+                sep_finder = sf.getInitPointsOnUnstable1DSeparatrix
+            elif sf.has1DStable(start_eq_obj, sf.STD_PRECISION):
+                if dt >= 0:
+                    raise ValueError(f"dt must be negative for 1D stable equilibrium, got dt = {dt}")
+                eq_type_condition = sf.has1DStable
+                sep_finder = sf.getInitPointsOnStable1DSeparatrix
+            else:
+                raise ValueError("Equilibrium has neither 1D unstable nor 1D stable manifold")
+
             with multiprocessing.Pool(processes=2) as pool:
                 args_start_eq = (reduced_rhs, reduced_jac, get_params, set_params,
                                  param_to_index, param_x_name, param_y_name,
@@ -83,8 +100,9 @@ def init_kneadings_fbpo(config, timeStamp):
                                  up_step, down_step, left_step, right_step)
                 start_eq_grid, inner_sf_grid = pool.starmap(continue_equilibrium, [args_start_eq, args_inner_sf])
 
-            start_sf_grid = get_eq_type_grid(start_eq_grid, up_n, down_n, left_n, right_n, sf.has1DUnstable, sf.STD_PRECISION)
-            inits, nones = find_inits_for_equilibrium_grid(start_sf_grid, 3, up_n, down_n, left_n, right_n, sf.STD_PRECISION)
+            start_sf_grid = get_eq_type_grid(start_eq_grid, up_n, down_n, left_n, right_n, eq_type_condition, sf.STD_PRECISION)
+            inits, nones = find_inits_for_equilibrium_grid(start_sf_grid, 3, up_n, down_n, left_n, right_n,
+                                                           sep_finder, sf.STD_PRECISION)
             params_x, params_y = generate_parameters(param_x, param_y, up_n, down_n, left_n, right_n,
                                                      up_step, down_step, left_step, right_step)
 
@@ -233,7 +251,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     w_inch, h_inch = fig.get_size_inches()
     w = int(w_inch * save_dpi)
     h = int(h_inch * save_dpi)
-    mode_map_data = mode_map_data.reshape((h, w, -1))
+    mode_map_data = mode_map_data.reshape((int(h), int(w), -1))
 
     # SAVING
 

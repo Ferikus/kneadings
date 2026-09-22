@@ -37,20 +37,44 @@ grid:
     name: b
     caption: \beta
 # name of the task to perform
-task: symmetry_detectives
+task: sequence_complexity
 # next entry must have the same name as value for "task" key
 # stores parameters for performing task function, depends on what
 # task function needs
+# --- INIT TASKS ---
+# saddle-focus grid task
+# prepares a 2D grid for worker-type tasks
 sf_grid:
   start_eq: [0.0, 2.30956058, 4.75652024]
   inner_sf: [1.427257804280822, 3.2091500304528755, 4.414529919493724]
   input_data:
+# --- WORKER TASKS ---
+# kneading-based tasks
+# each task plots a 2D map that assigns color to a point on the map based on the kneading
+# - "kneadings": assigns a specific color to a point on the map based on the kneading invariant
+# - "regularity": assigns black or white color to a point on the map based on whether the kneading sequence is regular
+# - "complexity": assigns color to the point on a map based on kneading sequence complexity
+# - "periodicity": assigns color to the point on a map based on kneading sequence complexity IF the sequence is regular
 kneadings:
   dt: 0.01
   n: 50000
   stride: 1
   kneadings_start: 0
   kneadings_end: 7
+  input_data:
+regularity:
+  dt: 0.01
+  n: 50000
+  stride:
+  kneadings_start:
+  kneadings_end:
+  input_data:
+complexity:
+  dt: 0.01
+  n: 50000
+  stride: 1
+  kneadings_start: 0
+  kneadings_end: 3
   input_data:
 periodicity:
   dt: 0.01
@@ -59,6 +83,8 @@ periodicity:
   kneadings_start: 0
   kneadings_end: 3
   input_data:
+# tasks for detecting the symmetry type of attractor
+# - "symmetry_detectives": uses special functions called symmetry detectives
 symmetry_detectives:
   dt: 0.01
   nStepsSkip: 000_00

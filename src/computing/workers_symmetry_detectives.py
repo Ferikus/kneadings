@@ -113,7 +113,10 @@ def post_symmetry_detectives(config, initResult, workerResult, grid, startTime):
         fig.savefig(buff, format='raw')
         buff.seek(0)
         mode_map_data = np.frombuffer(buff.getvalue(), dtype=np.uint8)
-    w, h = fig.canvas.get_width_height()
+    save_dpi = plot_settings['savefig.dpi']
+    w_inch, h_inch = fig.get_size_inches()
+    w = int(w_inch * save_dpi)
+    h = int(h_inch * save_dpi)
     mode_map_data = mode_map_data.reshape((int(h), int(w), -1))
 
     # SAVING

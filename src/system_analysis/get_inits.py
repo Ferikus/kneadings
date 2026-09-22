@@ -186,7 +186,7 @@ def get_eq_type_grid(grid, up_n, down_n, left_n, right_n, eq_type_condition, ps:
     return eq_type_grid
 
 
-def find_inits_for_equilibrium_grid(sf_grid, dim, up_n, down_n, left_n, right_n, ps: sf.PrecisionSettings):
+def find_inits_for_equilibrium_grid(sf_grid, dim, up_n, down_n, left_n, right_n, sep_finder, ps: sf.PrecisionSettings):
     """Находит начальные условия для сетки седло-фокусов"""
     print("Finding initial conditions...")
     inits = np.empty(dim * (left_n + right_n + 1) * (up_n + down_n + 1))
@@ -198,7 +198,9 @@ def find_inits_for_equilibrium_grid(sf_grid, dim, up_n, down_n, left_n, right_n,
 
             eq_obj = sf_grid[j][i]
             if eq_obj is not None:
-                init_pts = sf.getInitPointsOnUnstable1DSeparatrix(eq_obj, sf.pickCirSeparatrix, ps)
+                # определеяем тип и берем сепаратрису в зависти от типа
+                # init_pts = sf.getInitPointsOnUnstable1DSeparatrix(eq_obj, sf.pickCirSeparatrix, ps)
+                init_pts = sep_finder(eq_obj, sf.pickCirSeparatrix, ps)
                 if init_pts:
                     init_pt = init_pts[0]
                     for k in range(dim):
