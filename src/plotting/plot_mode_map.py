@@ -81,7 +81,7 @@ def set_mode_map_size(param_x_count, param_y_count):
 
 
 def prepare_mode_map(params_x, params_y, param_x_caption, param_y_caption, plot_settings):
-    """Настройка сетки параметров и оформления осей."""
+    """Auxilary: Настройка сетки параметров и оформления осей."""
     mpl.rcParams.update(plot_settings)
 
     unique_params_x = np.unique(params_x)
@@ -108,6 +108,42 @@ def prepare_mode_map(params_x, params_y, param_x_caption, param_y_caption, plot_
     return fig, unique_params_x, unique_params_y, param_x_count, param_y_count
 
 
+def plot_grid_with_errors(x, y, grid_matrix, cmap, **kwargs):
+    """Auxilary: Plots colorful regular data and monochrome error data"""
+    special_mask = grid_matrix < 0
+    normal_mask = grid_matrix >= 0
+    mesh = None
+
+    if np.any(normal_mask):
+        mesh = plt.pcolormesh(
+            x, y,
+            np.ma.masked_where(special_mask, grid_matrix),
+            cmap=cmap,
+            shading='nearest',
+            rasterized=True,
+            **kwargs
+        )
+
+    if np.any(special_mask):
+        min_val = -1.0
+        max_val = -0.1
+        negative_normalized = (grid_matrix[special_mask] - min_val) / (max_val - min_val)
+
+        gradient_data = np.full_like(grid_matrix, np.nan)
+        gradient_data[special_mask] = negative_normalized
+
+        plt.pcolormesh(
+            x, y,
+            gradient_data,
+            cmap='gray',
+            shading='nearest',
+            vmin=0, vmax=1,
+            rasterized=True
+        )
+
+    return mesh
+
+
 def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_caption, plot_settings):
     """Строит карту режимов на основе таблицы данных нидингов"""
     idxs_x, idxs_y, params_x, params_y, kneadings = kneadings_data
@@ -116,35 +152,38 @@ def plot_mode_map(kneadings_data, set_color_map, param_x_caption, param_y_captio
         params_x, params_y, param_x_caption, param_y_caption, plot_settings
     )
 
-    grid_matrix = np.full((param_y_count, param_x_count), -0.3)
+    grid_matrix = np.full((param_y_count, param_x_count), -1.1)
     grid_matrix[idxs_y, idxs_x] = kneadings
 
-    special_mask = grid_matrix < 0
-    normal_mask = grid_matrix >= 0
+    # special_mask = grid_matrix < 0
+    # normal_mask = grid_matrix >= 0
+    #
+    # if np.any(normal_mask):
+    #     plt.pcolormesh(unique_params_x, unique_params_y,
+    #                    np.ma.masked_where(special_mask, grid_matrix),
+    #                    cmap=set_color_map(),
+    #                    shading='nearest',
+    #                    vmin=0, vmax=1,
+    #                    rasterized=True)
+    #
+    # if np.any(special_mask):
+    #     min_val = -1.0
+    #     max_val = -0.1
+    #
+    #     negative_normalized = (grid_matrix[special_mask] - min_val) / (max_val - min_val)
+    #
+    #     gradient_data = np.full_like(grid_matrix, np.nan)
+    #     gradient_data[special_mask] = negative_normalized
+    #
+    #     plt.pcolormesh(unique_params_x, unique_params_y,
+    #                    gradient_data,
+    #                    cmap='gray',
+    #                    shading='nearest',
+    #                    vmin=0, vmax=1,
+    #                    rasterized=True)
 
-    if np.any(normal_mask):
-        plt.pcolormesh(unique_params_x, unique_params_y,
-                       np.ma.masked_where(special_mask, grid_matrix),
-                       cmap=set_color_map(),
-                       shading='nearest',
-                       vmin=0, vmax=1,
-                       rasterized=True)
-
-    if np.any(special_mask):
-        min_val = -1.0
-        max_val = -0.1
-
-        negative_normalized = (grid_matrix[special_mask] - min_val) / (max_val - min_val)
-
-        gradient_data = np.full_like(grid_matrix, np.nan)
-        gradient_data[special_mask] = negative_normalized
-
-        plt.pcolormesh(unique_params_x, unique_params_y,
-                       gradient_data,
-                       cmap='gray',
-                       shading='nearest',
-                       vmin=0, vmax=1,
-                       rasterized=True)
+    plot_grid_with_errors(unique_params_x, unique_params_y, grid_matrix,
+                          cmap=set_color_map(), vmin=0, vmax=1)
 
     return fig
 
@@ -156,20 +195,30 @@ def plot_regularity_data(regularity_data, param_x_caption, param_y_caption, plot
         params_x, params_y, param_x_caption, param_y_caption, plot_settings
     )
 
-    grid_matrix = np.full((ny, nx), -1.0)
+    grid_matrix = np.full((ny, nx), -1.1)
     grid_matrix[idxs_y, idxs_x] = regularity_set
-    plot_data = np.ma.masked_where(grid_matrix < 0, grid_matrix)
+
+    # plot_data = np.ma.masked_where(grid_matrix < 0, grid_matrix)
+    #
+    # custom_cmap = colors.ListedColormap(['black'])
+    # custom_cmap.set_over('white')
+    # custom_cmap.set_bad('gray')
+    #
+    # plt.pcolormesh(unique_x, unique_y,
+    #                plot_data,
+    #                cmap=custom_cmap,
+    #                shading='nearest',
+    #                vmin=-1e-6, vmax=1e-6,
+    #                rasterized=True)
+
+    grid_matrix = np.full((ny, nx), -1.1)
+    grid_matrix[idxs_y, idxs_x] = regularity_set
 
     custom_cmap = colors.ListedColormap(['black'])
     custom_cmap.set_over('white')
-    custom_cmap.set_bad('gray')
 
-    plt.pcolormesh(unique_x, unique_y,
-                   plot_data,
-                   cmap=custom_cmap,
-                   shading='nearest',
-                   vmin=-1e-6, vmax=1e-6,
-                   rasterized=True)
+    plot_grid_with_errors(unique_x, unique_y, grid_matrix,
+                          cmap=custom_cmap, vmin=-1e-6, vmax=1e-6)
 
     # legend
     legend_patches = [
@@ -195,20 +244,26 @@ def plot_complexity_data(complexity_data, param_x_caption, param_y_caption, plot
         params_x, params_y, param_x_caption, param_y_caption, plot_settings
     )
 
-    grid_matrix = np.full((ny, nx), -1.0)
+    grid_matrix = np.full((ny, nx), -1.1)
     grid_matrix[idxs_y, idxs_x] = complexity_set
-    plot_data = np.ma.masked_where(grid_matrix < 0, grid_matrix)
+    # plot_data = np.ma.masked_where(grid_matrix < 0, grid_matrix)
+    #
+    # custom_cmap = plt.get_cmap('gist_rainbow').copy()
+    # custom_cmap.set_under('black')
+    # custom_cmap.set_bad('gray')
+    #
+    # plt.pcolormesh(unique_x, unique_y,
+    #                plot_data,
+    #                cmap=custom_cmap,
+    #                shading='nearest',
+    #                vmin=1.0, vmax=4.0,
+    #                rasterized=True)
 
     custom_cmap = plt.get_cmap('gist_rainbow').copy()
     custom_cmap.set_under('black')
-    custom_cmap.set_bad('gray')
 
-    plt.pcolormesh(unique_x, unique_y,
-                   plot_data,
-                   cmap=custom_cmap,
-                   shading='nearest',
-                   vmin=1.0, vmax=4.0,
-                   rasterized=True)
+    plot_grid_with_errors(unique_x, unique_y, grid_matrix,
+                          cmap=custom_cmap, vmin=1.0, vmax=4.0)
 
     # legend
     legend_vals = np.unique([val for val in complexity_set if val > 0]).astype(int)
@@ -239,10 +294,9 @@ def plot_periodicity_data(periodicity_data, param_x_caption, param_y_caption, pl
 
     grid_matrix = np.full((ny, nx), -1.0)
     grid_matrix[idxs_y, idxs_x] = period_set
-    plot_data = np.ma.masked_where(grid_matrix < 0, grid_matrix)
+    # plot_data = np.ma.masked_where(grid_matrix < 0, grid_matrix)
 
     unique_periods = np.unique([int(val) for val in period_set if val > 0])
-
     if len(unique_periods) > 0:
         min_period = int(unique_periods.min())
         max_period = int(unique_periods.max())
@@ -251,21 +305,16 @@ def plot_periodicity_data(periodicity_data, param_x_caption, param_y_caption, pl
 
     custom_cmap = plt.get_cmap('gist_rainbow').copy()
     custom_cmap.set_under('black')
-    custom_cmap.set_bad('gray')
+    # custom_cmap.set_bad('gray')
 
     vmin = 1.0
     vmax = float(max(max_period, 2))
     norm = colors.Normalize(vmin=vmin, vmax=vmax)
 
-    mesh = plt.pcolormesh(
-        unique_x, unique_y,
-        plot_data,
-        cmap=custom_cmap,
-        norm=norm,
-        shading='nearest',
-        rasterized=True
-    )
+    mesh = plot_grid_with_errors(unique_x, unique_y, grid_matrix,
+                                 cmap=custom_cmap, norm=norm)
 
+    # legend
     cbar = fig.colorbar(mesh, fraction=0.046, pad=0.04)
     cbar.set_label('Period length', rotation=270, labelpad=15)
 

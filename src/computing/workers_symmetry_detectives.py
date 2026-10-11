@@ -42,7 +42,7 @@ def worker_symmetry_detectives(config, initResult, timeStamp):
 
     if input_data_path is not None:
         prev_config = get_config_data(input_data_path)
-        check_config_correspondence(prev_config, config, ('sf_grid', 'symmetry_detectives',))
+        check_config_correspondence(prev_config, config, ('sf_grid',), check_source=True)
 
         with h5py.File(input_data_path, 'r') as input_file:
             data = input_file['symmetry_detectives_info']['symmetry_detectives_data'][()]

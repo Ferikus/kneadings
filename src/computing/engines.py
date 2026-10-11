@@ -112,25 +112,33 @@ def save_data(h5py_outname, data, records, mode_map_data, inits, nones, inner_sf
         main_folder.attrs['config'] = config_string
 
 
-def check_config_correspondence(prev_config, curr_config, task_names):
+def check_config_correspondence(source_config, curr_config, task_names, check_source=False):
     """Compares configs of previous and current tasks.
     Default system, grid and given tasks parameters must correspond to each other"""
     print("Checking config correspondence...")
 
-    assert prev_config['defaultSystem'] == curr_config['defaultSystem'],\
-        f"Default system parameters in configs differ\n{yaml.dump(prev_config['defaultSystem'])}"
-    assert prev_config['grid'] == curr_config['grid'],\
-        f"Grid parameters in configs differ\n{yaml.dump(prev_config['grid'])}"
+    assert source_config['defaultSystem'] == curr_config['defaultSystem'],\
+        f"Default system parameters in configs differ\n{yaml.dump(source_config['defaultSystem'])}"
+    assert source_config['grid'] == curr_config['grid'],\
+        f"Grid parameters in configs differ\n{yaml.dump(source_config['grid'])}"
 
-    # надо получить source_task -- написать отдельную функцию
-    # если source_task не всегда совпадает с curr_task, то проверка на параметры не нужна, получается
-    # for task_name in task_names:
-    #     prev_task_dict = prev_config[task_name].copy()
-    #     curr_task_dict = curr_config[task_name].copy()
-    #     prev_task_dict.pop('input_data', None)
-    #     curr_task_dict.pop('input_data', None)
-    #     assert prev_task_dict == curr_task_dict,\
-    #         f"Task {task_name} parameters in configs differ\n{yaml.dump(prev_config[task_name])}"
+    if check_source:
+        source_objective_dict = source_config[source_config['task']].copy()
+        curr_objective_dict = curr_config[curr_config['task']].copy()
+        source_objective_dict.pop('input_data', None)
+        curr_objective_dict.pop('input_data', None)
+        assert source_objective_dict == curr_objective_dict, \
+            (f"Current task '{curr_config['task']}' parameters in configs differ with source task '{source_config['task']}'"
+             f"\n{yaml.dump(source_objective_dict)}")
+
+    # task_names -- другие задачи, кроме сорс
+    for task_name in task_names:
+        source_task_dict = source_config[task_name].copy()
+        curr_task_dict = curr_config[task_name].copy()
+        source_task_dict.pop('input_data', None)
+        curr_task_dict.pop('input_data', None)
+        assert source_task_dict == curr_task_dict,\
+            f"Task {task_name} parameters in configs differ\n{yaml.dump(source_config[task_name])}"
 
 
 def get_params_from_config(data_path):

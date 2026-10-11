@@ -42,7 +42,7 @@ def make_kneadings_based_worker(task_name, sweep):
 
         if input_data_path is not None:
             prev_config = get_config_data(input_data_path)
-            check_config_correspondence(prev_config, config, ('sf_grid', task_name, ))
+            check_config_correspondence(prev_config, config, ('sf_grid', ), check_source=True)
             task_data = get_data(input_data_path, config)
             _, _, _, _, task_core_data = task_data
         else:

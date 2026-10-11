@@ -74,7 +74,7 @@ def init_kneadings_fbpo(config, timeStamp):
             inner_sf = correct_equilibrium_coords(reduced_rhs, reduced_jac, inner_sf_guess)
 
             start_eq_obj = sf.getEquilibriumInfo(start_eq, reduced_jac)
-            dt = config['kneadings']['dt']
+            dt = config[config['task']]['dt']
             if sf.has1DUnstable(start_eq_obj, sf.STD_PRECISION):
                 if dt <= 0:
                     raise ValueError(f"dt must be positive for 1D unstable equilibrium, got dt = {dt}")
