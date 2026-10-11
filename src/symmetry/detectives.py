@@ -1,7 +1,8 @@
 import numpy as np
 from numba import cuda
-from src.cuda_sweep.sweep_fbpo import full_rhs
 import itertools
+
+from src.cuda_sweep.sweep_fbpo import full_rhs, reduced_rhs
 
 DIM = 4
 DIM_REDUCED = 3
@@ -9,9 +10,10 @@ THREADS_PER_BLOCK = 256
 DETECTIVE_ENTRY_SIZE = 4
 PAR_SPACE_DIM = 4
 
-NO_INIT_FOUND_ERROR = -2.0
-STUCK_INTO_EQUILIBRIUM = -1.0 
+NO_INIT_FOUND_ERROR = -1.0
+IN_EQUILIBRIUM_ERROR = -0.20
 SUCCESSFULLY_COMPUTED = 1.0
+
 
 CODE_T1_SYMMETRY = 1.0
 CODE_T2_SYMMETRY = 2.0 
@@ -22,7 +24,7 @@ N_CIR_PERMUTATIONS = 4
 
 DATA_TO_COLOR = {
     NO_INIT_FOUND_ERROR: 'white',
-    STUCK_INTO_EQUILIBRIUM: 'darkgray',
+    IN_EQUILIBRIUM_ERROR: 'lightgray',
     CODE_T1_SYMMETRY: 'red',
     CODE_T2_SYMMETRY: 'yellow',
     CODE_T0_SYMMETRY: 'green'
@@ -76,12 +78,14 @@ def permuteStateInto(origState, permut, permutedState):
 @cuda.jit(device=True)
 def symmetry_type_compute(initFullSys, params, dt, nStepsSkip, nStepsAttractor, out_array, fullPermutationsFlat, cirPermutationsFlat):
     curState = cuda.local.array(DIM, dtype=np.float64)
+    curReducedState = cuda.local.array(DIM_REDUCED, dtype=np.float64)
     prevState = cuda.local.array(DIM, dtype=np.float64)
     startCurState = cuda.local.array(DIM, dtype=np.float64)
     startPrevState = cuda.local.array(DIM, dtype=np.float64)
     permutedCurState = cuda.local.array(DIM, dtype=np.float64)
     permutedPrevState = cuda.local.array(DIM, dtype=np.float64)
     curRhs = cuda.local.array(DIM, dtype=np.float64)
+    curReducedRhs = cuda.local.array(DIM_REDUCED, dtype=np.float64)
 
     curRowPermutation = cuda.local.array(DIM, dtype=np.int16)
     curColPermutation = cuda.local.array(DIM, dtype=np.int16)
@@ -99,10 +103,14 @@ def symmetry_type_compute(initFullSys, params, dt, nStepsSkip, nStepsAttractor, 
         iterIndex += 1
 
         # this is a check for getting stuck into equilibrium
-        full_rhs(params, curState, curRhs)
-        if abs(curRhs[0]) < 1e-8 and abs(curRhs[1]) < 1e-8 and abs(curRhs[2]) < 1e-8 and abs(curRhs[3]) < 1e-8:
-            notInEquilibrium = False 
-
+        # full_rhs(params, curState, curRhs)
+        # if abs(curRhs[0]) < 1e-8 and abs(curRhs[1]) < 1e-8 and abs(curRhs[2]) < 1e-8 and abs(curRhs[3]) < 1e-8:
+        #     notInEquilibrium = False
+        for k in range(DIM_REDUCED):
+            curReducedState[k] = curState[k + 1] - curState[0]
+        reduced_rhs(params, curReducedState, curReducedRhs)
+        if abs(curReducedRhs[0]) < 1e-8 and abs(curReducedRhs[1]) < 1e-8 and abs(curReducedRhs[2]) < 1e-8:
+            notInEquilibrium = False
 
     # and now we compute on the attractor 
     iterIndex = 0
@@ -123,6 +131,7 @@ def symmetry_type_compute(initFullSys, params, dt, nStepsSkip, nStepsAttractor, 
 
         # and here we will accumulate integrals
         for col_ind in range(N_CIR_PERMUTATIONS):
+        # for col_ind in range(1):
             # extract a permutation that corresponds to the
             # columns of detectives array
             curColPermutation[0] = cirPermutationsFlat[col_ind * DIM + 0]
@@ -134,6 +143,7 @@ def symmetry_type_compute(initFullSys, params, dt, nStepsSkip, nStepsAttractor, 
             permuteStateInto(prevState, curColPermutation, startPrevState)
 
             for row_ind in range(N_ALL_PERMUTATIONS):
+            # for row_ind in range(1):
                 curRowPermutation[0] = fullPermutationsFlat[row_ind*DIM + 0]
                 curRowPermutation[1] = fullPermutationsFlat[row_ind*DIM + 1]
                 curRowPermutation[2] = fullPermutationsFlat[row_ind*DIM + 2]
@@ -151,9 +161,14 @@ def symmetry_type_compute(initFullSys, params, dt, nStepsSkip, nStepsAttractor, 
             prevState[i] = curState[i]
 
         # this is a check for getting stuck into equilibrium
-        full_rhs(params, curState, curRhs)
-        if abs(curRhs[0]) < 1e-8 and abs(curRhs[1]) < 1e-8 and abs(curRhs[2]) < 1e-8 and abs(curRhs[3]) < 1e-8:
-            notInEquilibrium = False 
+        # full_rhs(params, curState, curRhs)
+        # if abs(curRhs[0]) < 1e-8 and abs(curRhs[1]) < 1e-8 and abs(curRhs[2]) < 1e-8 and abs(curRhs[3]) < 1e-8:
+        #     notInEquilibrium = False
+        for k in range(DIM_REDUCED):
+            curReducedState[k] = curState[k + 1] - curState[0]
+        reduced_rhs(params, curReducedState, curReducedRhs)
+        if abs(curReducedRhs[0]) < 1e-8 and abs(curReducedRhs[1]) < 1e-8 and abs(curReducedRhs[2]) < 1e-8:
+            notInEquilibrium = False
 
     if notInEquilibrium:
         out_array[0] = SUCCESSFULLY_COMPUTED
@@ -175,7 +190,7 @@ def symmetry_type_compute(initFullSys, params, dt, nStepsSkip, nStepsAttractor, 
 
             out_array[col_ind] = maxAbsDiff
     else:
-        out_array[0] = STUCK_INTO_EQUILIBRIUM
+        out_array[0] = IN_EQUILIBRIUM_ERROR
         out_array[1] = -10.
         out_array[2] = -10.
         out_array[3] = -10.

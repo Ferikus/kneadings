@@ -78,21 +78,25 @@ def find_period_complexity_of_sequence(sequence, len_sequence):
                 break
 
         if period_found:
-            # calculate period complexity as array length now
-            # complexity = 0
-            # for i in range(curr_period):
-            #     char_is_new = True
-            #     for j in range(complexity):
-            #         if period_charset[j] == period[i]:
-            #             char_is_new = False
-            #             break
-            #     if char_is_new:
-            #         period_charset[complexity] = period[i]
-            #         complexity += 1
             complexity = find_complexity_of_sequence(period, curr_period)
             break
 
     return complexity if period_found else 0
+
+
+# MAYBE i should return float numbers like 0.0 and float()
+@cuda.jit(device=True)
+def find_period_metrics_of_sequence(sequence, len_sequence):
+    period = find_period_of_sequence(sequence, len_sequence)
+
+    # if the sequence is irregular, then period = 0, complexity = 0 -> packed = 0
+    # if period == 0:
+    #     return 0
+
+    complexity = find_complexity_of_sequence(sequence, len_sequence)
+
+    # packing complexity into bits 0-2 and period into bits 3+ (about 14 bits max for period of 10_000 length)
+    return (period << 3) | complexity
 
 
 def make_integrator_rk4_for_sequence(event_condition, process_sequence):
@@ -284,21 +288,20 @@ def make_sweep_for_sequence(event_condition, process_sequence):
     return sweep_for_sequence
 
 
-def sweep_regularity(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
-                            up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set):
-    # set up for integrator
-    event_condition = event_cross_plane
-    process_sequence = find_period_of_sequence
-    sweep_for_sequence = make_sweep_for_sequence(event_condition, process_sequence)
-    return sweep_for_sequence(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
-                              up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set)
-
-
 def sweep_complexity(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
                      up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set):
     # set up for integrator
     event_condition = event_cross_plane
     process_sequence = find_complexity_of_sequence
+    sweep_for_sequence = make_sweep_for_sequence(event_condition, process_sequence)
+    return sweep_for_sequence(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
+                              up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set)
+
+
+def sweep_periodicity(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
+                      up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set):
+    event_condition = event_cross_plane
+    process_sequence = find_period_of_sequence
     sweep_for_sequence = make_sweep_for_sequence(event_condition, process_sequence)
     return sweep_for_sequence(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
                               up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set)
@@ -312,3 +315,20 @@ def sweep_period_complexity(inits, nones, params_x, params_y, def_params, param_
     sweep_for_sequence = make_sweep_for_sequence(event_condition, process_sequence)
     return sweep_for_sequence(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
                               up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set)
+
+
+def sweep_period_metrics(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
+                         up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set):
+    event_condition = event_cross_plane
+    process_sequence = find_period_metrics_of_sequence
+    sweep_for_sequence = make_sweep_for_sequence(event_condition, process_sequence)
+    return sweep_for_sequence(inits, nones, params_x, params_y, def_params, param_to_index, param_x_str, param_y_str,
+                              up_n, down_n, left_n, right_n, dt, n, stride, kneadings_start, kneadings_end, misc_set)
+
+
+def unpack_period_metrics(packed):
+    packed_int = np.asarray(packed, dtype=np.int32)
+    regularity = np.where(packed > 0, packed_int & 0b0001, packed)
+    complexity = np.where(packed > 0, packed_int & 0b0111, packed)
+    period = np.where(packed > 0, packed_int >> 3, packed)
+    return regularity, complexity, period

@@ -8,8 +8,7 @@ import multiprocessing
 import lib.eq_finder.systems_fun as sf
 import lib.eq_finder.SystOsscills as so
 
-from src.computing.engines import (get_data, get_inits_data, get_config_data,
-                                   check_config_correspondence, save_data)
+from src.computing.engines import get_data, get_inits_data, get_config_data, check_config_correspondence, save_data
 from src.system_analysis.find_equilibrium import correct_equilibrium_coords
 from src.system_analysis.get_inits import (continue_equilibrium, get_eq_type_grid, find_inits_for_equilibrium_grid,
                                            generate_parameters, prepare_inner_sf_set)
@@ -20,7 +19,7 @@ from src.routing.route_exploring import get_grid_points_along_line
 
 ### to connect with workers file
 from lib.computation_template.workers_utils import register, makeFinalOutname
-from src.computing.workers import registry
+from src.computing.workers import registry, make_kneadings_based_worker
 
 
 @register(registry, 'init', 'kneadings', 'regularity', 'complexity', 'periodicity', 'symmetry_detectives')
@@ -117,66 +116,7 @@ def init_kneadings_fbpo(config, timeStamp):
             'targetDir': 'output'}
 
 
-@register(registry, 'worker', 'kneadings')
-def worker_kneadings_fbpo(config, initResult, timeStamp):
-    def_sys_dict = config['defaultSystem']
-    w = def_sys_dict['w']
-    a = def_sys_dict['a']
-    b = def_sys_dict['b']
-    r = def_sys_dict['r']
-    param_to_index = def_sys_dict['param_to_index']
-
-    grid_dict = config['grid']
-    left_n = grid_dict['first']['left_n']
-    right_n = grid_dict['first']['right_n']
-    up_n = grid_dict['second']['up_n']
-    down_n = grid_dict['second']['down_n']
-    param_x_name = grid_dict['first']['name']
-    param_y_name = grid_dict['second']['name']
-
-    kneadings_dict = config['kneadings']
-    dt = kneadings_dict['dt']
-    n = kneadings_dict['n']
-    stride = kneadings_dict['stride']
-    kneadings_start = kneadings_dict['kneadings_start']
-    kneadings_end = kneadings_dict['kneadings_end']
-    input_data_path = kneadings_dict['input_data']
-
-    inits = initResult['inits']
-    nones = initResult['nones']
-    params_x = initResult['params_x']
-    params_y = initResult['params_y']
-    inner_sf_set = initResult['inner_sf_set']
-
-    if input_data_path is not None:
-        prev_config = get_config_data(input_data_path)
-        check_config_correspondence(prev_config, config, ('sf_grid', 'kneadings',))
-        kneadings_data = get_data(input_data_path)
-        _, _, _, _, kneadings_weighted_sum_set = kneadings_data
-    else:
-        def_params = [w, a, b, r]
-        kneadings_weighted_sum_set = sweep(
-            inits,
-            nones,
-            params_x,
-            params_y,
-            def_params,
-            param_to_index,
-            param_x_name,
-            param_y_name,
-            up_n,
-            down_n,
-            left_n,
-            right_n,
-            dt,
-            n,
-            stride,
-            kneadings_start,
-            kneadings_end,
-            inner_sf_set
-        )
-
-    return {'kneadings_weighted_sum_set': kneadings_weighted_sum_set}
+worker_kneadings_fbpo = make_kneadings_based_worker('kneadings', sweep)
 
 
 @register(registry, 'post', 'kneadings')
@@ -204,7 +144,7 @@ def post_kneadings_fbpo(config, initResult, workerResult, grid, startTime):
     params_y = initResult['params_y']
     inner_sf_set = initResult['inner_sf_set']
 
-    kneadings_weighted_sum_set = workerResult['kneadings_weighted_sum_set']
+    kneadings_weighted_sum_set = workerResult['task_core_data']
 
     idxs_x = []
     idxs_y = []

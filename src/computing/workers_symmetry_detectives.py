@@ -104,8 +104,8 @@ def post_symmetry_detectives(config, initResult, workerResult, grid, startTime):
                       params_y,
                       detectives_outputs]
 
-    fig = plot_detectives_data(detectives_data, makeRuleOne(-1.5, -0.5), param_x_caption, param_y_caption, plot_settings)
-    plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter symmetry map")
+    fig = plot_detectives_data(detectives_data, makeRuleOne(-1.06, -1.08), param_x_caption, param_y_caption, plot_settings) #-2.0, -1.5
+    plt.title(f"(${param_x_caption}$, ${param_y_caption}$)-parameter symmetry type map")
     plt.tight_layout()
     plt.show()
 

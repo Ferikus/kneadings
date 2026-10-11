@@ -4,77 +4,16 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import io
 
-from src.computing.engines import (get_data, get_config_data, check_config_correspondence,
-                                   save_data)
-from src.cuda_sweep.sweep_period import sweep_complexity
+from src.computing.engines import save_data
+from src.cuda_sweep.sweep_period import sweep_period_metrics, unpack_period_metrics
 from src.routing.route_exploring import get_grid_points_along_line
 from src.plotting.plot_mode_map import plot_complexity_data
 
 ### to connect with workers file
 from lib.computation_template.workers_utils import register, makeFinalOutname
-from src.computing.workers import registry
+from src.computing.workers import registry, make_kneadings_based_worker
 
-
-@register(registry, 'worker', 'complexity')
-def worker_complexity(config, initResult, timeStamp):
-    def_sys_dict = config['defaultSystem']
-    w = def_sys_dict['w']
-    a = def_sys_dict['a']
-    b = def_sys_dict['b']
-    r = def_sys_dict['r']
-    param_to_index = def_sys_dict['param_to_index']
-
-    grid_dict = config['grid']
-    left_n = grid_dict['first']['left_n']
-    right_n = grid_dict['first']['right_n']
-    up_n = grid_dict['second']['up_n']
-    down_n = grid_dict['second']['down_n']
-    param_x_name = grid_dict['first']['name']
-    param_y_name = grid_dict['second']['name']
-
-    task_dict = config['complexity']
-    dt = task_dict['dt']
-    n = task_dict['n']
-    stride = task_dict['stride']
-    kneadings_start = task_dict['kneadings_start']
-    kneadings_end = task_dict['kneadings_end']
-    input_data_path = task_dict['input_data']
-
-    inits = initResult['inits']
-    nones = initResult['nones']
-    params_x = initResult['params_x']
-    params_y = initResult['params_y']
-    inner_sf_set = initResult['inner_sf_set']
-
-    if input_data_path is not None:
-        prev_config = get_config_data(input_data_path)
-        check_config_correspondence(prev_config, config, ('sf_grid', 'complexity',))
-        complexity_data = get_data(input_data_path, config)
-        _, _, _, _, complexity_set = complexity_data
-    else:
-        def_params = [w, a, b, r]
-        complexity_set = sweep_complexity(
-            inits,
-            nones,
-            params_x,
-            params_y,
-            def_params,
-            param_to_index,
-            param_x_name,
-            param_y_name,
-            up_n,
-            down_n,
-            left_n,
-            right_n,
-            dt,
-            n,
-            stride,
-            kneadings_start,
-            kneadings_end,
-            inner_sf_set
-        )
-
-    return {'complexity_set': complexity_set}
+worker_complexity = make_kneadings_based_worker('complexity', sweep_period_metrics)
 
 
 @register(registry, 'post', 'complexity')
@@ -101,7 +40,8 @@ def post_complexity(config, initResult, workerResult, grid, startTime):
     params_y = initResult['params_y']
     inner_sf_set = initResult['inner_sf_set']
 
-    complexity_set = workerResult['complexity_set']
+    packed_set = workerResult['task_core_data']
+    _, complexity_set, _ = unpack_period_metrics(packed_set)
 
     idxs_x = []
     idxs_y = []
@@ -132,6 +72,7 @@ def post_complexity(config, initResult, workerResult, grid, startTime):
     plt.tight_layout()
     plt.show()
 
+    # saving
     with io.BytesIO() as buff:
         fig.savefig(buff, format='raw')
         buff.seek(0)
@@ -141,8 +82,6 @@ def post_complexity(config, initResult, workerResult, grid, startTime):
     w = int(w_inch * save_dpi)
     h = int(h_inch * save_dpi)
     mode_map_data = mode_map_data.reshape((h, w, -1))
-
-    # SAVING
 
     txt_records = ""
     for idx in range((left_n + right_n + 1) * (up_n + down_n + 1)):
@@ -170,7 +109,8 @@ def post_complexity(config, initResult, workerResult, grid, startTime):
     plt.close(fig)
     print("Complexity map successfully saved")
 
+    hdf5_data = [idxs_x, idxs_y, params_x, params_y, packed_set]
     hdf5_outname = makeFinalOutname(config, initResult, "hdf5", startTime)
-    save_data(hdf5_outname, complexity_data, txt_records, mode_map_data, inits, nones,
+    save_data(hdf5_outname, hdf5_data, txt_records, mode_map_data, inits, nones,
               inner_sf_set, config)
     print("Dataset successfully saved")

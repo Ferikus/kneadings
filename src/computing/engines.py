@@ -8,15 +8,37 @@ import matplotlib.pyplot as plt
 
 from src.plotting.plot_mode_map import plot_mode_map, make_set_color_map
 
+TASK_COMPATIBILITY_GROUPS = [
+    {'regularity', 'periodicity', 'complexity'},
+]
+
+
+def is_compatible_task(curr_task, source_task):
+    if curr_task == source_task:
+        return True
+    for group in TASK_COMPATIBILITY_GROUPS:
+        if curr_task in group and source_task in group:
+            return True
+    return False
+
 
 def get_data(input_data_dir, config):
     """Gets task data from task computing stage"""
     assert input_data_dir is not None, "No input data path was given"
     assert os.path.isfile(input_data_dir), f"Data file {os.path.abspath(input_data_dir)} does not exist"
 
+    curr_task = config['task']
     input_data = h5py.File(input_data_dir, 'r')
-    task_name = config['task']
-    data = input_data[f'{task_name}_info'][f'{task_name}_data']
+    source_task = None
+    for key in input_data.keys():
+        if key.endswith('_info') and key != 'sf_grid_info':
+            source_task = key[:-5]
+            break
+
+    assert is_compatible_task(curr_task, source_task), \
+        f"Task '{curr_task}' cannot import data produced by '{source_task}'"
+
+    data = input_data[f'{source_task}_info'][f'{source_task}_data']
 
     idxs_x, idxs_y, params_x, params_y, vals = data
 
@@ -95,15 +117,20 @@ def check_config_correspondence(prev_config, curr_config, task_names):
     Default system, grid and given tasks parameters must correspond to each other"""
     print("Checking config correspondence...")
 
-    assert prev_config['defaultSystem'] == curr_config['defaultSystem'], "Default system parameters in configs differ"
-    assert prev_config['grid'] == curr_config['grid'], "Grid parameters in configs differ"
+    assert prev_config['defaultSystem'] == curr_config['defaultSystem'],\
+        f"Default system parameters in configs differ\n{yaml.dump(prev_config['defaultSystem'])}"
+    assert prev_config['grid'] == curr_config['grid'],\
+        f"Grid parameters in configs differ\n{yaml.dump(prev_config['grid'])}"
 
-    for task_name in task_names:
-        prev_task_dict = prev_config[task_name].copy()
-        curr_task_dict = curr_config[task_name].copy()
-        prev_task_dict.pop('input_data', None)
-        curr_task_dict.pop('input_data', None)
-        assert prev_task_dict == curr_task_dict, f"Task {task_name} parameters in configs differ"
+    # надо получить source_task -- написать отдельную функцию
+    # если source_task не всегда совпадает с curr_task, то проверка на параметры не нужна, получается
+    # for task_name in task_names:
+    #     prev_task_dict = prev_config[task_name].copy()
+    #     curr_task_dict = curr_config[task_name].copy()
+    #     prev_task_dict.pop('input_data', None)
+    #     curr_task_dict.pop('input_data', None)
+    #     assert prev_task_dict == curr_task_dict,\
+    #         f"Task {task_name} parameters in configs differ\n{yaml.dump(prev_config[task_name])}"
 
 
 def get_params_from_config(data_path):
